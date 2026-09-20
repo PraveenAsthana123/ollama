@@ -36,6 +36,7 @@ On the reference GTX 1080 Ti host:
 
 See [the runtime architecture](docs/ARCHITECTURE.md),
 [the agent control tower](docs/AGENT_CONTROL_TOWER.md),
+[the token-efficiency pipeline](docs/TOKEN_EFFICIENCY_PIPELINE.md),
 [cold-start operations](docs/COLD_START.md), and
 [the audit summary](reports/model-audit-summary.json).
 
@@ -44,6 +45,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/control-tower` — status, catalog, warm, and audit entry point.
 - `scripts/warm_models.py` — idempotent prewarm request for fast/code models.
 - `scripts/audit_models.py` — bounded sequential model validation.
+- `scripts/token_router.py` — budget, pruning, route, and exact-cache-key preparation.
 - `config/token-tower.yaml` — context, output, residency, and routing policy.
 - `config/litellm.yaml` — measured fast/code/strong aliases.
 - `config/freellmapi.config.json` — local provider definition for FreeLLMAPI.

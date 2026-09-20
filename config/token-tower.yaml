@@ -28,3 +28,37 @@ guardrails:
   do_not_auto_route_failed_models:
     - kivi:local
     - SparkLLM/Spark-X2.5-1.7B:latest
+
+pipeline:
+  budget_check:
+    enabled: true
+    default_input_budget: 3500
+  exact_cache:
+    enabled: false
+    adapter: redis
+    ttl_seconds: 3600
+  semantic_cache:
+    enabled: false
+    adapter: qdrant
+    similarity_threshold: 0.92
+    ttl_seconds: 86400
+  context_pruner:
+    enabled: true
+    modes: [history, source, logs, prose]
+  llmlingua:
+    enabled: false
+    allowed_modes: [history, logs, prose]
+    prohibited_modes: [source]
+  evaluator:
+    enabled: true
+    max_escalations: 1
+  collective_memory:
+    enabled: false
+    store_prompt_bodies: false
+
+metrics:
+  record_prompt_bodies: false
+  record_cache_hits: true
+  record_route: true
+  record_token_counts: true
+  record_latency: true

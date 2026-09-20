@@ -3,7 +3,9 @@
 Cold starts have two costs: CUDA runtime initialization and model loading.
 Changing model families can also evict a resident model. The tower addresses
 this with a persistent user service, a 30-minute keep-alive, two resident model
-slots, and a timer that refreshes the fast and code models every 20 minutes.
+slots, and a timer that concurrently refreshes the fast and code models every
+20 minutes. Concurrent reservation is intentional: it makes the scheduler hold
+both configured slots rather than viewing the second refresh as replacement work.
 
 Check current residency:
 

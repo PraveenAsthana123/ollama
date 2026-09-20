@@ -4,6 +4,7 @@
 import json
 import os
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 
 BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
@@ -23,7 +24,7 @@ def request(path: str, payload: dict) -> dict:
 
 
 def main() -> None:
-    for model in MODELS:
+    def warm(model: str) -> str:
         result = request("/api/generate", {
             "model": model,
             "prompt": "",
@@ -33,7 +34,13 @@ def main() -> None:
         })
         if result.get("error"):
             raise RuntimeError(f"{model}: {result['error']}")
-        print(f"warm: {model}")
+        return model
+
+    # Submit together so Ollama's scheduler reserves both configured resident
+    # slots rather than treating the second refresh as a replacement workload.
+    with ThreadPoolExecutor(max_workers=len(MODELS)) as pool:
+        for model in pool.map(warm, MODELS):
+            print(f"warm: {model}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,25 @@
+model_list:
+  - model_name: fast
+    litellm_params:
+      model: ollama_chat/qwen3:1.7b
+      api_base: http://127.0.0.1:11434
+      max_tokens: 512
+      num_ctx: 4096
+      think: false
+
+  - model_name: code
+    litellm_params:
+      model: ollama_chat/qwen2.5-coder:1.5b
+      api_base: http://127.0.0.1:11434
+      max_tokens: 1024
+      num_ctx: 4096
+
+  - model_name: strong
+    litellm_params:
+      model: ollama_chat/qwen2.5:latest
+      api_base: http://127.0.0.1:11434
+      max_tokens: 1024
+      num_ctx: 4096
+
+general_settings:
+  disable_spend_logs: false

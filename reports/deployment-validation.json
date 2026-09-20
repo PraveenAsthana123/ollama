@@ -1,0 +1,35 @@
+{
+  "validated_at": "2026-09-20T21:40:00Z",
+  "ollama_endpoint": "http://127.0.0.1:11434",
+  "legacy_endpoint": "http://127.0.0.1:11435",
+  "litellm_endpoint": "http://127.0.0.1:4400/v1",
+  "catalog_tags": 65,
+  "resident_models": [
+    {
+      "model": "qwen3:1.7b",
+      "gpu_bytes": 1811645725
+    },
+    {
+      "model": "qwen2.5-coder:1.5b",
+      "gpu_bytes": 1220238376
+    }
+  ],
+  "warm_litellm_checks": [
+    {
+      "alias": "fast",
+      "ttft_seconds": 1.405,
+      "response": "ready"
+    },
+    {
+      "alias": "code",
+      "ttft_seconds": 0.316,
+      "response": "ready"
+    }
+  ],
+  "prewarm_service": "passed",
+  "prewarm_timer": "active",
+  "notes": [
+    "Synthetic prompts only",
+    "Single measurements are smoke checks, not benchmarks"
+  ]
+}

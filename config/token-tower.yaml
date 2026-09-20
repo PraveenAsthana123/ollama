@@ -1,0 +1,30 @@
+defaults:
+  context_tokens: 4096
+  output_tokens: 512
+  keep_alive: 30m
+  parallel_requests: 1
+  max_loaded_models: 2
+  max_queue: 16
+
+tiers:
+  fast:
+    model: qwen3:1.7b
+    output_tokens: 512
+    thinking: false
+    prewarm: true
+  code:
+    model: qwen2.5-coder:1.5b
+    output_tokens: 1024
+    prewarm: true
+  strong:
+    model: qwen2.5:latest
+    output_tokens: 1024
+    prewarm: false
+
+guardrails:
+  reject_context_above: 8192
+  prefer_markdown_extraction: true
+  unload_audit_models_after_test: true
+  do_not_auto_route_failed_models:
+    - kivi:local
+    - SparkLLM/Spark-X2.5-1.7B:latest

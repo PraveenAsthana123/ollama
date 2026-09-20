@@ -1,0 +1,11 @@
+[Unit]
+Description=Prewarm latency-sensitive Ollama models
+After=ollama.service
+Requires=ollama.service
+
+[Service]
+Type=oneshot
+Environment=OLLAMA_BASE_URL=http://127.0.0.1:11434
+Environment=OLLAMA_WARM_MODELS=qwen3:1.7b,qwen2.5-coder:1.5b
+Environment=OLLAMA_WARM_KEEP_ALIVE=30m
+ExecStart=/usr/bin/python3 %h/.local/share/ollama-control-tower/scripts/warm_models.py

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base_url="${OLLAMA_BASE_URL:-http://127.0.0.1:11434}"
+action="${1:-status}"
+
+case "$action" in
+  status)
+    curl --noproxy '*' -fsS "$base_url/api/version"
+    echo
+    curl --noproxy '*' -fsS "$base_url/api/ps"
+    echo
+    ;;
+  models)
+    curl --noproxy '*' -fsS "$base_url/api/tags"
+    echo
+    ;;
+  warm)
+    exec python3 "$(dirname "$0")/warm_models.py"
+    ;;
+  audit)
+    exec python3 "$(dirname "$0")/audit_models.py" "${@:2}"
+    ;;
+  *)
+    echo "usage: control-tower {status|models|warm|audit}" >&2
+    exit 2
+    ;;
+esac

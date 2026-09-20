@@ -1,0 +1,9 @@
+[Unit]
+Description=Legacy Ollama compatibility listener
+
+[Socket]
+ListenStream=127.0.0.1:11435
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target

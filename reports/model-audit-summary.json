@@ -1,0 +1,67 @@
+{
+  "catalog_tags": 65,
+  "passed": 55,
+  "failed": 2,
+  "not_load_tested": 8,
+  "text_models_benchmarked": 51,
+  "median_tokens_per_second": 80.41,
+  "fastest_text_models": [
+    {
+      "model": "yasserrmd/ERNIE-4.5-0.3B:latest",
+      "tokens_per_second": 252.37
+    },
+    {
+      "model": "deepseek-coder:1.3b",
+      "tokens_per_second": 237.4
+    },
+    {
+      "model": "qwen3:0.6b",
+      "tokens_per_second": 187.15
+    },
+    {
+      "model": "codegemma:2b",
+      "tokens_per_second": 168.38
+    },
+    {
+      "model": "gemma3:270m",
+      "tokens_per_second": 167.1
+    },
+    {
+      "model": "llama3.2:1b",
+      "tokens_per_second": 149.52
+    },
+    {
+      "model": "qwen3:1.7b",
+      "tokens_per_second": 146.29
+    },
+    {
+      "model": "openbmb/minicpm5:latest",
+      "tokens_per_second": 145.11
+    },
+    {
+      "model": "gemma:2b",
+      "tokens_per_second": 137.74
+    },
+    {
+      "model": "shieldgemma:2b",
+      "tokens_per_second": 135.05
+    }
+  ],
+  "failed_models": [
+    {
+      "model": "kivi:local",
+      "error": "model 'kivi:local' not found"
+    },
+    {
+      "model": "SparkLLM/Spark-X2.5-1.7B:latest",
+      "error": "llama-server process has terminated: exit status 1: error loading model: unknown model architecture: 'spark2_5'\nerror loading model: unknown model architecture: 'spark2_5'"
+    }
+  ],
+  "method": {
+    "sequential": true,
+    "num_ctx": 2048,
+    "num_predict": 8,
+    "gpu_fit_threshold_gb": 6.1,
+    "audit_models_unloaded_after_test": true
+  }
+}

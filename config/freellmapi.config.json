@@ -1,0 +1,15 @@
+{
+  "customProviders": [
+    {
+      "baseUrl": "http://127.0.0.1:4400/v1",
+      "label": "Local Ollama Control Tower",
+      "models": [
+        { "model": "fast", "displayName": "Local Fast", "supportsTools": true },
+        { "model": "code", "displayName": "Local Code", "supportsTools": true },
+        { "model": "strong", "displayName": "Local Strong", "supportsTools": true },
+        { "model": "local-vllm", "displayName": "Local vLLM CPU" }
+      ]
+    }
+  ],
+  "routing": { "strategy": "speed" }
+}

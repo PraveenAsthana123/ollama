@@ -1,0 +1,14 @@
+2026-09-20 inventory active_catalog_tags=32 secondary_catalog_tags=39 unified_tags=65
+2026-09-20 diagnosis endpoint=11435 state=offline litellm_routes_affected=3
+2026-09-20 diagnosis endpoint=11434 processor=cpu qwen3_1.7b_ttft_s=12.09 generation_tok_s=16.39
+2026-09-20 diagnosis endpoint=11434 processor=cpu qwen2.5_coder_1.5b_ttft_s=10.29 generation_tok_s=20.75
+2026-09-20 gpu_probe library=cuda_v12 device=GTX_1080_Ti compute_capability=6.1 result=passed
+2026-09-20 gpu_probe model=qwen3:1.7b residency=100_percent_gpu cold_load_s=36.23 generation_tok_s=122.78
+2026-09-20 gpu_probe model=qwen3:1.7b warm_ttft_s=0.607 warm_generation_tok_s=127.78
+2026-09-20 service duplicate_system_service_restarts=129344 action=stopped port_collision=resolved
+2026-09-20 deployment user_ollama_service=active endpoint=127.0.0.1:11434 catalog_tags=65
+2026-09-20 deployment legacy_socket=active endpoint=127.0.0.1:11435 upstream=127.0.0.1:11434
+2026-09-20 audit passed=55 failed=2 not_load_tested=8 median_text_tok_s=80.41
+2026-09-20 prewarm models=qwen3:1.7b,qwen2.5-coder:1.5b result=passed resident_gpu_models=2
+2026-09-20 litellm alias=fast model=qwen3:1.7b warm_ttft_s=1.405 result=passed
+2026-09-20 litellm alias=code model=qwen2.5-coder:1.5b warm_ttft_s=0.316 result=passed

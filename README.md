@@ -43,10 +43,12 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 ## Layout
 
 - `scripts/control-tower` — status, catalog, warm, and audit entry point.
+- `scripts/agent_control.py` — persistent agent states, budgets, approvals, and operator controls.
 - `scripts/warm_models.py` — idempotent prewarm request for fast/code models.
 - `scripts/audit_models.py` — bounded sequential model validation.
 - `scripts/token_router.py` — budget, pruning, route, and exact-cache-key preparation.
 - `config/token-tower.yaml` — context, output, residency, and routing policy.
+- `config/agent-control.yaml` — trust, tool, MCP, retry, loop, and budget policy.
 - `config/litellm.yaml` — measured fast/code/strong aliases.
 - `config/freellmapi.config.json` — local provider definition for FreeLLMAPI.
 - `systemd/` — persistent CUDA server, prewarm timer, and legacy-port proxy.

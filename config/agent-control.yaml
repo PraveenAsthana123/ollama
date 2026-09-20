@@ -1,0 +1,53 @@
+budgets:
+  token_limit: 30000
+  token_warn_percent: 80
+  token_degrade_percent: 90
+  token_block_percent: 100
+  cost_limit_usd: 1.00
+  step_limit: 50
+  idle_timeout_seconds: 300
+
+fallback:
+  degraded_model: fast
+  max_retries: 2
+  max_reassignments: 2
+
+loop_detection:
+  enabled: true
+  identical_fingerprint_limit: 3
+
+trust_levels:
+  restricted:
+    default_action: review
+  standard:
+    default_action: allow
+  trusted:
+    default_action: allow
+
+tools:
+  always_review:
+    - git.push
+    - deploy.production
+    - email.send
+    - database.delete
+    - filesystem.delete
+    - package.system_install
+    - memory.persist
+  always_block:
+    - credential.export
+    - sandbox.disable
+
+mcp:
+  default_action: review
+  allowed_servers:
+    - filesystem
+    - github
+    - browser
+    - database
+    - terminal
+  blocked_servers: []
+
+audit:
+  store_prompt_bodies: false
+  store_tool_arguments: false
+  store_state_transitions: true

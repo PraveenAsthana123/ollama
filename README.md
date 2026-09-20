@@ -34,8 +34,10 @@ On the reference GTX 1080 Ti host:
   and 8 oversized models were inventoried without loading.
 - Median generation speed across 51 tested text models: 80.41 tokens/second.
 
-See [the architecture](docs/ARCHITECTURE.md), [cold-start operations](docs/COLD_START.md),
-and [the audit summary](reports/model-audit-summary.json).
+See [the runtime architecture](docs/ARCHITECTURE.md),
+[the agent control tower](docs/AGENT_CONTROL_TOWER.md),
+[cold-start operations](docs/COLD_START.md), and
+[the audit summary](reports/model-audit-summary.json).
 
 ## Layout
 

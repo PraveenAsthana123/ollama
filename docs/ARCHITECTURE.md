@@ -1,5 +1,9 @@
 # Architecture
 
+The broader supervisor, worker, MCP, and approval design is documented in
+[Agent Control Tower](AGENT_CONTROL_TOWER.md). This page describes the model
+runtime underneath that agent layer.
+
 ## Control Tower
 
 The control plane owns health, inventory, model validation, compatibility, and

@@ -41,6 +41,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 [the AgentOps layer](docs/AGENTOPS.md),
 [the collective memory layer](docs/COLLECTIVE_MEMORY.md),
 [the inference control tower](docs/INFERENCE_CONTROL_TOWER.md),
+[the global shared installation](docs/GLOBAL_INSTALL.md),
 [the agent harness manager](docs/AGENT_HARNESS.md),
 [the supervisor tower](docs/SUPERVISOR_TOWER.md),
 [the Agentic Engineering lifecycle](docs/AGENTIC_ENGINEERING.md),
@@ -57,6 +58,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/agentops.py` — session replay, incidents, evaluations, and CI quality gates.
 - `scripts/collective_memory.py` — scoped, expiring, token-bounded shared evidence.
 - `scripts/inference_router.py` — cache, task, model, provider, fallback, and evaluation plans.
+- `scripts/install_global.sh` — publishes one shared user-level installation for every project.
 - `scripts/harness_manager.py` — resolves runtime profiles and evidence-gated runs.
 - `scripts/supervisor.py` — bounded DAG scheduling, routing, blackboard, retries, and review.
 - `scripts/platform_audit.py` — verifies all 25 lifecycle stages against repository evidence.

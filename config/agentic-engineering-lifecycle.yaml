@@ -1,0 +1,45 @@
+version: 1
+statuses: [implemented, contract, external, planned]
+stages:
+  - {id: 1, name: Agent Engineering, status: implemented, evidence: [README.md, docs/ARCHITECTURE.md]}
+  - {id: 2, name: Agent Design / Harness, status: implemented, evidence: [scripts/harness_manager.py, config/harness-profiles.yaml]}
+  - {id: 3, name: Agent Factory, status: contract, evidence: [docs/BUSINESS_AGENT_MAP.md]}
+  - {id: 4, name: Agent Registry, status: implemented, evidence: [scripts/business_registry.py, config/business-agent-registry.yaml]}
+  - {id: 5, name: Task Decomposition, status: contract, evidence: [docs/SUPERVISOR_TOWER.md]}
+  - {id: 6, name: Planning, status: implemented, evidence: [scripts/supervisor.py, config/supervisor-tower.yaml]}
+  - {id: 7, name: Agent Creation, status: implemented, evidence: [scripts/agent_control.py, scripts/harness_manager.py]}
+  - {id: 8, name: Agent Assignment, status: implemented, evidence: [scripts/supervisor.py]}
+  - {id: 9, name: Supervisor / Worker, status: implemented, evidence: [scripts/supervisor.py, docs/SUPERVISOR_TOWER.md]}
+  - {id: 10, name: Multi-Agent Collaboration, status: contract, evidence: [docs/SUPERVISOR_TOWER.md]}
+  - {id: 11, name: Handoff / Delegation, status: implemented, evidence: [scripts/supervisor.py]}
+  - {id: 12, name: A2A Communication, status: planned, evidence: []}
+  - {id: 13, name: MCP / Tool Calling, status: external, evidence: [docs/AGENT_HARNESS.md]}
+  - {id: 14, name: Shared / Collective Memory, status: planned, evidence: []}
+  - {id: 15, name: Model Router, status: implemented, evidence: [scripts/token_router.py, config/litellm.yaml]}
+  - {id: 16, name: Agent Router, status: implemented, evidence: [scripts/supervisor.py, config/supervisor-tower.yaml]}
+  - {id: 17, name: Tool Router, status: implemented, evidence: [scripts/agent_control.py, config/agent-control.yaml]}
+  - {id: 18, name: Context / Token Optimization, status: implemented, evidence: [scripts/token_router.py, scripts/token_metrics.py]}
+  - {id: 19, name: Agent Evaluation, status: contract, evidence: [docs/AGENT_HARNESS.md]}
+  - {id: 20, name: AgentOps, status: external, evidence: [docs/AGENT_MONITORING.md]}
+  - {id: 21, name: Observability, status: implemented, evidence: [scripts/agent_monitor.py, config/agent-monitoring.yaml]}
+  - {id: 22, name: Security / Guardrails, status: implemented, evidence: [scripts/agent_control.py, config/harness-profiles.yaml]}
+  - {id: 23, name: Human Approval, status: implemented, evidence: [scripts/supervisor.py, config/agent-control.yaml]}
+  - {id: 24, name: Cost / FinOps, status: implemented, evidence: [scripts/token_metrics.py, scripts/agent_monitor.py]}
+  - {id: 25, name: Agent Control Tower, status: implemented, evidence: [scripts/control-tower, docs/AGENT_CONTROL_TOWER.md]}
+
+production_gates:
+  - name: runtime_adapters
+    status: open
+    requirement: Enforce harness and control decisions in every selected worker runtime.
+  - name: a2a_protocol
+    status: open
+    requirement: Authenticate, authorize, bound, trace, and replay inter-agent messages.
+  - name: collective_memory
+    status: open
+    requirement: Add scoped retention, provenance, access control, deletion, and stale-memory evaluation.
+  - name: continuous_evaluation
+    status: open
+    requirement: Implement task and trace evaluation with release thresholds and regression datasets.
+  - name: external_backends
+    status: open
+    requirement: Deploy and validate chosen MCP, telemetry, cache, and optional cloud backends.

@@ -39,8 +39,11 @@ case "$action" in
   tokens)
     exec python3 "$(dirname "$0")/token_metrics.py" "${@:2}"
     ;;
+  platform)
+    exec python3 "$(dirname "$0")/platform_audit.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform}" >&2
     exit 2
     ;;
 esac

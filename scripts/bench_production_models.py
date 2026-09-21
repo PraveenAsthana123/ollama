@@ -37,7 +37,7 @@ def unload(model: str) -> None:
         headers={"Content-Type": "application/json"}, method="POST",
     )
     try:
-        urllib.request.urlopen(req, timeout=15).read()
+        urllib.request.urlopen(req, timeout=15).read()  # nosemgrep: dynamic-urllib-use-detected -- OLLAMA_URL is a hardcoded local constant
     except Exception:
         pass
 
@@ -49,7 +49,7 @@ def timed_generate(model: str, prompt: str) -> dict:
         data=json.dumps({"model": model, "prompt": prompt, "stream": False}).encode(),
         headers={"Content-Type": "application/json"}, method="POST",
     )
-    with urllib.request.urlopen(req, timeout=120) as resp:
+    with urllib.request.urlopen(req, timeout=120) as resp:  # nosemgrep: dynamic-urllib-use-detected -- OLLAMA_URL is a hardcoded local constant
         result = json.loads(resp.read().decode())
     elapsed = time.monotonic() - t0
     eval_count = result.get("eval_count", 0)
@@ -69,7 +69,7 @@ def timed_embed(model: str, text: str) -> dict:
         data=json.dumps({"model": model, "prompt": text}).encode(),
         headers={"Content-Type": "application/json"}, method="POST",
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:  # nosemgrep: dynamic-urllib-use-detected -- OLLAMA_URL is a hardcoded local constant
         json.loads(resp.read().decode())
     return {"total_s": round(time.monotonic() - t0, 2)}
 

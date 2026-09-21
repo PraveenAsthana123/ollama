@@ -19,7 +19,7 @@ OLLAMA_URL = "http://127.0.0.1:11434"
 
 
 def _get(path: str) -> dict:
-    with urllib.request.urlopen(f"{OLLAMA_URL}{path}", timeout=10) as resp:
+    with urllib.request.urlopen(f"{OLLAMA_URL}{path}", timeout=10) as resp:  # nosemgrep: dynamic-urllib-use-detected -- OLLAMA_URL is a hardcoded local constant, path is a literal call-site argument, never user input
         return json.loads(resp.read().decode())
 
 

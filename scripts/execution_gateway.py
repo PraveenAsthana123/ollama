@@ -69,12 +69,24 @@ def _cache_key(query: str, kind: str, context: str) -> str:
     return f"execution_gateway:exact:{digest}"
 
 
+def _validate_endpoint(endpoint: str) -> None:
+    """endpoint comes from config/inference-control-tower.yaml (a trusted
+    local file, same trust boundary every other script in this repo already
+    assumes for its own config values) rather than a hardcoded constant --
+    unlike a hardcoded OLLAMA_URL, semgrep can't prove this is safe by
+    itself, so validate the scheme explicitly as real defense-in-depth
+    against a misconfigured/malicious endpoint value (e.g. file://)."""
+    if not (endpoint.startswith("http://") or endpoint.startswith("https://")):
+        raise ValueError(f"refusing non-http(s) Ollama endpoint: {endpoint!r}")
+
+
 def _ollama_tags(endpoint: str) -> list[str]:
     """Real installed-model list -- used to populate route()'s availability
     dict honestly, never assumed."""
+    _validate_endpoint(endpoint)
     req = urllib.request.Request(f"{endpoint}/api/tags")
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=5) as resp:  # nosemgrep: dynamic-urllib-use-detected -- scheme validated above, endpoint is trusted local config
             data = json.loads(resp.read().decode())
         return [m["name"] for m in data.get("models", [])]
     except Exception:
@@ -82,12 +94,13 @@ def _ollama_tags(endpoint: str) -> list[str]:
 
 
 def _ollama_generate(endpoint: str, model: str, query: str, keep_alive: str, timeout: int = 90) -> dict:
+    _validate_endpoint(endpoint)
     payload = {"model": model, "prompt": query, "stream": False, "keep_alive": keep_alive}
     req = urllib.request.Request(
         f"{endpoint}/api/generate", data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"}, method="POST",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # nosemgrep: dynamic-urllib-use-detected -- scheme validated above, endpoint is trusted local config
         return json.loads(resp.read().decode())
 
 

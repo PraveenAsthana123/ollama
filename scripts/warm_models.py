@@ -15,11 +15,13 @@ KEEP_ALIVE = os.getenv("OLLAMA_WARM_KEEP_ALIVE", "30m")
 
 
 def request(path: str, payload: dict) -> dict:
+    if not (BASE_URL.startswith("http://") or BASE_URL.startswith("https://")):
+        raise ValueError(f"refusing non-http(s) OLLAMA_BASE_URL: {BASE_URL!r}")
     body = json.dumps(payload).encode()
     req = urllib.request.Request(
         BASE_URL + path, body, {"Content-Type": "application/json"}
     )
-    with urllib.request.urlopen(req, timeout=180) as response:
+    with urllib.request.urlopen(req, timeout=180) as response:  # nosemgrep: dynamic-urllib-use-detected -- scheme validated above; BASE_URL is an operator-set env var, not remote input
         return json.load(response)
 
 

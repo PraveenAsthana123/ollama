@@ -1,0 +1,74 @@
+name: CI
+
+# Real CI, added 2026-09-21 to close a gap an external audit caught: this
+# repo's commit messages had been claiming "N tests pass" with no GitHub
+# commit-status check to verify it -- local test runs are real evidence,
+# but they are not CI-verified evidence. This makes that claim checkable.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Validate all YAML config parses
+        run: |
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          import yaml
+
+          failures = []
+          for path in sorted(Path("config").glob("*.yaml")):
+              try:
+                  yaml.safe_load(path.read_text())
+              except Exception as exc:
+                  failures.append(f"{path}: {exc}")
+          if failures:
+              print("YAML validation failed:")
+              for f in failures:
+                  print(f" - {f}")
+              sys.exit(1)
+          print(f"OK: {len(list(Path('config').glob('*.yaml')))} config files parse cleanly")
+          PY
+
+      - name: Run test suite
+        run: python3 -m pytest tests/ -v
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install semgrep
+        run: pip install semgrep
+      - name: Run semgrep (Python security + correctness rules)
+        run: semgrep --config p/python --config p/security-audit --error --quiet scripts/

@@ -46,6 +46,7 @@ import gpu_scheduler  # noqa: E402
 import semantic_cache  # noqa: E402
 import injection_guard  # noqa: E402
 import cache_integrity  # noqa: E402
+import pii_scanner  # noqa: E402
 from agent_monitor import EventStore  # noqa: E402
 
 try:
@@ -302,18 +303,31 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
         "gpu_wait_ms": lease["wait_ms"], "gpu_priority": lease["priority_name"],
     }
 
-    if exact_cache_cfg["enabled"] and _redis_client:
-        try:
-            cacheable = dict(result)
-            cacheable.pop("cache_hit", None)
-            cacheable.pop("latency_ms", None)
-            envelope = {"payload": cacheable, "signature": cache_integrity.sign(cacheable)}
-            _redis_client.setex(cache_key, exact_cache_cfg["ttl_seconds"], json.dumps(envelope))
-        except Exception:
-            pass
+    pii_scan = pii_scanner.scan(f"{query}\n{result['response']}")
+    if pii_scan["flagged"]:
+        # The real answer still goes back to the caller below (line
+        # `return result`) -- what's skipped is PERSISTING it. A cache hit
+        # that returned [REDACTED] wouldn't be useful, and masking would do
+        # nothing to protect a response already delivered; not caching it
+        # at all is what actually closes the "PII in the cache" gap.
+        store.append({
+            "category": "security", "status": "completed", "agent_id": "execution_gateway",
+            "name": "pii_scanner", "latency_ms": 0.0, "pii_types": pii_scan["types"],
+            "reason": "skipped_caching_due_to_pii",
+        })
+    else:
+        if exact_cache_cfg["enabled"] and _redis_client:
+            try:
+                cacheable = dict(result)
+                cacheable.pop("cache_hit", None)
+                cacheable.pop("latency_ms", None)
+                envelope = {"payload": cacheable, "signature": cache_integrity.sign(cacheable)}
+                _redis_client.setex(cache_key, exact_cache_cfg["ttl_seconds"], json.dumps(envelope))
+            except Exception:
+                pass
 
-    if semantic_cache_cfg["enabled"]:
-        semantic_cache.store(query, kind, result["response"], plan["model"], plan["tier"])
+        if semantic_cache_cfg["enabled"]:
+            semantic_cache.store(query, kind, result["response"], plan["model"], plan["tier"])
 
     store.append({
         "category": "model", "status": "completed", "agent_id": "execution_gateway",

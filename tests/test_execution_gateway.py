@@ -267,3 +267,51 @@ def test_untampered_exact_cache_entry_still_verifies_and_serves():
     assert second["cache_hit"] is True
     assert second["response"] == "56"
     mock_gen.assert_called_once()
+
+
+# --- PII skips caching but still returns the real answer -----------------
+
+def test_pii_in_query_is_never_cached_but_real_answer_still_returned():
+    class FakeRedis:
+        def __init__(self):
+            self.store = {}
+
+        def get(self, key):
+            return self.store.get(key)
+
+        def setex(self, key, ttl, value):
+            self.store[key] = value
+
+    fake_redis = FakeRedis()
+    gateway._redis_client = fake_redis
+
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "Sure, I'll email you at that address."}) as mock_gen:
+        result = gateway.execute("Please email the report to jane.doe@example.com", kind="prose")
+
+    assert result["decision"] == "inference"
+    assert result["response"] == "Sure, I'll email you at that address."  # real answer, not redacted
+    assert fake_redis.store == {}  # nothing persisted to the cache
+    mock_gen.assert_called_once()
+
+
+def test_pii_in_response_also_skips_caching():
+    class FakeRedis:
+        def __init__(self):
+            self.store = {}
+
+        def get(self, key):
+            return self.store.get(key)
+
+        def setex(self, key, ttl, value):
+            self.store[key] = value
+
+    fake_redis = FakeRedis()
+    gateway._redis_client = fake_redis
+
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "Contact support at help@example.com"}) as mock_gen:
+        result = gateway.execute("How do I get support?", kind="prose")
+
+    assert result["response"] == "Contact support at help@example.com"
+    assert fake_redis.store == {}

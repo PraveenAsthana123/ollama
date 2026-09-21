@@ -30,6 +30,7 @@ class PreparedRequest:
     input_budget_tokens: int
     output_limit_tokens: int
     compression_ratio: float
+    duplicate_context_ratio: float
     context: str
 
 
@@ -79,6 +80,35 @@ def prune(query: str, context: str, kind: str, budget: int) -> str:
     return "\n".join(lines[index] for index in sorted(selected))
 
 
+def duplicate_ratio(text: str) -> float:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    return round(1 - len(set(lines)) / len(lines), 4) if lines else 0.0
+
+
+def compress_observation(observation: str, budget: int) -> str:
+    """Loss-aware fallback compressor for terminal/tool observations.
+
+    Keeps unique lines, errors, action-bearing output, and the final state. A
+    learned CoACT-compatible adapter can replace this at the gateway boundary.
+    """
+    lines = observation.splitlines()
+    unique, seen = [], set()
+    for index, line in enumerate(lines):
+        normalized = line.strip()
+        if normalized and normalized in seen and not ERROR.search(line):
+            continue
+        if normalized:
+            seen.add(normalized)
+        priority = 10 if ERROR.search(line) else 5 if CODE.search(line) else 2 if index >= len(lines) - 10 else 1
+        unique.append((index, line, priority))
+    selected, used = set(), 0
+    for index, line, _ in sorted(unique, key=lambda item: (-item[2], -item[0])):
+        cost = estimate_tokens(line + "\n")
+        if used + cost <= budget:
+            selected.add(index); used += cost
+    return "\n".join(lines[index] for index in sorted(selected))
+
+
 def choose_route(query: str, context_tokens: int, kind: str) -> str:
     text = query.lower()
     hard = ("architecture", "security", "migrate", "root cause", "proof", "research")
@@ -113,6 +143,7 @@ def prepare(query: str, context: str, kind: str, input_budget: int) -> PreparedR
         input_budget_tokens=input_budget,
         output_limit_tokens=output_limit(query, route),
         compression_ratio=round(after / before, 4) if before else 1.0,
+        duplicate_context_ratio=duplicate_ratio(context),
         context=bounded,
     )
 

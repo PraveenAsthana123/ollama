@@ -1,5 +1,27 @@
 # Token-efficiency pipeline
 
+The Token Tower measures input, output, cached, and compressed tokens by agent,
+task, tool, MCP server, and model. It also reports duplicate-context ratio,
+context utilization, cache-hit rate, local-versus-cloud calls, and cost per
+successful task:
+
+```bash
+scripts/control-tower tokens
+scripts/control-tower tokens --since-seconds 3600
+```
+
+Coding-agent terminal, test, and MCP observations can be passed through
+`compress_observation` before entering the next model context. The built-in
+fallback removes repeated lines while retaining errors, code/action-bearing
+lines, and the newest state within a token budget. A learned CoACT endpoint may
+replace this fallback after it is separately deployed and benchmarked.
+
+Automatic recommendations include deduplication and pruning at 20% duplicate
+context, summarization or compression at 80% utilization, semantic caching
+when a meaningful sample has under 10% cache hits, and routing easy cloud work
+to local Ollama. LMCache, GPTCache, LLMLingua, and CoACT remain optional adapters;
+their installation and measured suitability are separate from this baseline.
+
 ```mermaid
 flowchart TB
     U[User / Agent] --> B[Token budget check]

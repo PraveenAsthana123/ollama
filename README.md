@@ -55,6 +55,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/warm_models.py` — idempotent prewarm request for fast/code models.
 - `scripts/audit_models.py` — bounded sequential model validation.
 - `scripts/token_router.py` — budget, pruning, route, and exact-cache-key preparation.
+- `scripts/token_metrics.py` — token efficiency KPIs and automatic reaction recommendations.
 - `config/token-tower.yaml` — context, output, residency, and routing policy.
 - `config/agent-control.yaml` — trust, tool, MCP, retry, loop, and budget policy.
 - `config/business-agent-registry.yaml` — domains, supervisors, roles, skills, tools, and approval gates.

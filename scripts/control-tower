@@ -36,8 +36,11 @@ case "$action" in
   supervisor)
     exec python3 "$(dirname "$0")/supervisor.py" "${@:2}"
     ;;
+  tokens)
+    exec python3 "$(dirname "$0")/token_metrics.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens}" >&2
     exit 2
     ;;
 esac

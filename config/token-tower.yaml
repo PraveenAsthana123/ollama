@@ -49,6 +49,14 @@ pipeline:
     enabled: false
     allowed_modes: [history, logs, prose]
     prohibited_modes: [source]
+  observation_compressor:
+    enabled: true
+    fallback: action_preserving_deterministic
+    coact_endpoint: null
+    compress_kinds: [terminal, tool, mcp]
+  kv_cache:
+    enabled: false
+    adapter: lmcache
   evaluator:
     enabled: true
     max_escalations: 1
@@ -62,3 +70,14 @@ metrics:
   record_route: true
   record_token_counts: true
   record_latency: true
+  group_by: [agent, task, tool, mcp_server, model]
+  record_duplicate_context_ratio: true
+  record_context_utilization: true
+  record_local_cloud_ratio: true
+  record_cost_per_success: true
+
+reactions:
+  duplicate_context_ratio_prune: 0.20
+  context_utilization_compress: 0.80
+  cache_hit_rate_enable_semantic_cache: 0.10
+  actions: [compress, summarize, cache, prune, route_local, halt_loop, escalate_subtask]

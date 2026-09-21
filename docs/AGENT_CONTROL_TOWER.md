@@ -164,3 +164,7 @@ bounded by the Token Tower and worker configuration.
 
 Keeping status explicit prevents an architecture diagram from being mistaken
 for proof that every external worker is installed or authorized.
+
+Business roles and cross-functional workflows are defined separately in
+[the Business Agent Map](BUSINESS_AGENT_MAP.md). The business registry selects
+the responsible role; this control plane applies runtime state and safety policy.

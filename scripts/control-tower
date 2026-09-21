@@ -24,8 +24,11 @@ case "$action" in
   agent)
     exec python3 "$(dirname "$0")/agent_control.py" "${@:2}"
     ;;
+  registry)
+    exec python3 "$(dirname "$0")/business_registry.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry}" >&2
     exit 2
     ;;
 esac

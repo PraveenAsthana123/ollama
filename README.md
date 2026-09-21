@@ -36,6 +36,7 @@ On the reference GTX 1080 Ti host:
 
 See [the runtime architecture](docs/ARCHITECTURE.md),
 [the agent control tower](docs/AGENT_CONTROL_TOWER.md),
+[the business agent map](docs/BUSINESS_AGENT_MAP.md),
 [the token-efficiency pipeline](docs/TOKEN_EFFICIENCY_PIPELINE.md),
 [cold-start operations](docs/COLD_START.md), and
 [the audit summary](reports/model-audit-summary.json).
@@ -44,11 +45,13 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 
 - `scripts/control-tower` — status, catalog, warm, and audit entry point.
 - `scripts/agent_control.py` — persistent agent states, budgets, approvals, and operator controls.
+- `scripts/business_registry.py` — validates and queries business roles and workflows.
 - `scripts/warm_models.py` — idempotent prewarm request for fast/code models.
 - `scripts/audit_models.py` — bounded sequential model validation.
 - `scripts/token_router.py` — budget, pruning, route, and exact-cache-key preparation.
 - `config/token-tower.yaml` — context, output, residency, and routing policy.
 - `config/agent-control.yaml` — trust, tool, MCP, retry, loop, and budget policy.
+- `config/business-agent-registry.yaml` — domains, supervisors, roles, skills, tools, and approval gates.
 - `config/litellm.yaml` — measured fast/code/strong aliases.
 - `config/freellmapi.config.json` — local provider definition for FreeLLMAPI.
 - `systemd/` — persistent CUDA server, prewarm timer, and legacy-port proxy.
@@ -59,6 +62,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 Review paths in the unit files, then install as the current user:
 
 ```bash
+python -m pip install -r requirements.txt
 install -d "$HOME/.local/share/ollama-control-tower/scripts" "$HOME/.config/systemd/user"
 install -m 755 scripts/*.py scripts/control-tower "$HOME/.local/share/ollama-control-tower/scripts/"
 python scripts/build_model_index.py "$HOME/.local/share/ollama-control-tower/models" \

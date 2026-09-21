@@ -1,0 +1,196 @@
+version: 1
+classification: [domain, department, role, skills, tools]
+
+control_tower:
+  name: Business Control Tower
+  supervisor: Business Supervisor
+  delegation_path: [business_agent, specialist_agent, technical_agent, tool]
+  require_human_approval_for:
+    - contract_signature
+    - funds_transfer
+    - employment_decision
+    - clinical_decision
+    - credit_decision
+    - production_deployment
+    - destructive_action
+
+supervisors:
+  Revenue Supervisor: [Product, Sales, Marketing, Customer Service]
+  Operations Supervisor: [Project / Program, Procurement, Supply Chain, Manufacturing, Operations]
+  Corporate Supervisor: [Executive / Strategy, Finance, HR, Legal, Risk / Compliance]
+  Regulated Industries Supervisor: [Banking, Insurance, Healthcare]
+  Technology Supervisor: [Security, Engineering, Data / AI, Research, Innovation]
+
+technical_agents:
+  - Architect Agent
+  - Developer Agent
+  - QA Agent
+  - DevOps Agent
+  - Data Engineer Agent
+  - ML Agent
+  - RAG Agent
+  - Evaluation Agent
+  - Document Agent
+  - CRM Agent
+  - Integration Agent
+
+tool_profiles:
+  office: [filesystem, email, calendar, document_rag]
+  customer: [crm, email, knowledge_base, analytics]
+  finance: [erp, sql, spreadsheet, billing_api]
+  governance: [policy_rag, evidence_store, case_management, audit_log]
+  engineering: [git, filesystem, terminal, ci_cd, observability]
+  data: [sql, object_store, pipeline_api, vector_db, evaluation]
+  operations: [erp, workflow_api, database, dashboard]
+  regulated: [case_management, document_rag, sql, audit_log]
+  research: [browser, search, document_rag, knowledge_graph]
+
+domains:
+  - domain: Executive / Strategy
+    department: Executive Office
+    work: [strategy, priorities, scenario analysis, executive briefs]
+    skills: [strategic analysis, scenario planning, portfolio prioritization, executive synthesis]
+    tool_profile: office
+    agents: [CEO Agent, Strategy Agent, Transformation Agent, Portfolio Agent]
+  - domain: Product
+    department: Product Management
+    work: [PRD, backlog, roadmap, customer problems, prioritization]
+    skills: [product discovery, requirements, prioritization, roadmap planning]
+    tool_profile: customer
+    agents: [Product Manager Agent, Product Owner Agent, Discovery Agent, Roadmap Agent]
+  - domain: Project / Program
+    department: PMO
+    work: [planning, milestones, risks, dependencies, status]
+    skills: [project planning, dependency analysis, risk tracking, status reporting]
+    tool_profile: office
+    agents: [Project Manager Agent, Program Manager Agent, PMO Agent, Scrum Agent]
+  - domain: Sales
+    department: Revenue
+    work: [lead qualification, outreach, demos, proposals, follow-up]
+    skills: [account research, qualification, solution mapping, proposal writing]
+    tool_profile: customer
+    agents: [SDR Agent, Account Executive Agent, Sales Engineer Agent, Proposal Agent, Pricing Agent, Contract Agent, CRM Agent]
+  - domain: Marketing
+    department: Growth Marketing
+    work: [campaigns, content, SEO, social, demand generation]
+    skills: [market positioning, content planning, SEO analysis, campaign measurement]
+    tool_profile: customer
+    agents: [Marketing Strategy Agent, SEO Agent, Content Agent, Campaign Agent, Social Agent]
+  - domain: Customer Service
+    department: Customer Operations
+    work: [tickets, FAQs, escalation, retention]
+    skills: [ticket triage, knowledge retrieval, escalation, customer health analysis]
+    tool_profile: customer
+    agents: [Support Agent, Triage Agent, Escalation Agent, Customer Success Agent]
+  - domain: Finance
+    department: Finance
+    work: [forecasting, budgeting, invoices, costs, variance]
+    skills: [financial modeling, variance analysis, reconciliation, cost optimization]
+    tool_profile: finance
+    agents: [FP&A Agent, Budget Agent, Invoice Agent, Revenue Agent, FinOps Agent]
+  - domain: HR
+    department: People Operations
+    work: [candidate screening, interviews, onboarding, training]
+    skills: [candidate assessment, interview coordination, onboarding, learning design]
+    tool_profile: office
+    agents: [Recruiter Agent, Screening Agent, Onboarding Agent, Learning Agent]
+  - domain: Procurement
+    department: Strategic Sourcing
+    work: [supplier evaluation, sourcing, contracts, spend analysis]
+    skills: [vendor assessment, sourcing, commercial comparison, spend analysis]
+    tool_profile: operations
+    agents: [Vendor Agent, RFQ/RFP Agent, Contract Agent, Spend Agent]
+  - domain: Legal
+    department: Legal
+    work: [contract analysis, clauses, regulatory research]
+    skills: [clause analysis, legal research, obligation extraction, compliance mapping]
+    tool_profile: governance
+    agents: [Contract Review Agent, Legal Research Agent, Compliance Agent]
+  - domain: Risk / Compliance
+    department: GRC
+    work: [controls, risk assessment, evidence, policy compliance]
+    skills: [control testing, risk assessment, evidence review, policy mapping]
+    tool_profile: governance
+    agents: [Risk Agent, GRC Agent, Audit Agent, Policy Agent]
+  - domain: Security
+    department: Security Operations
+    work: [alerts, investigations, response, access review]
+    skills: [alert triage, incident investigation, threat analysis, access review]
+    tool_profile: governance
+    agents: [SOC Agent, Incident Agent, Threat Agent, IAM Agent]
+  - domain: Banking
+    department: Financial Crime and Lending
+    work: [customer onboarding, AML alerts, fraud cases, credit workflows]
+    skills: [identity verification, transaction analysis, anomaly assessment, evidence gathering]
+    tool_profile: regulated
+    agents: [KYC Agent, AML Agent, Fraud Agent, Lending Agent]
+  - domain: Insurance
+    department: Insurance Operations
+    work: [claims triage, underwriting support, policy servicing]
+    skills: [claims assessment, exposure analysis, policy interpretation, case summarization]
+    tool_profile: regulated
+    agents: [Claims Agent, Underwriting Agent, Policy Agent]
+  - domain: Healthcare
+    department: Care Operations
+    work: [patient intake, scheduling, clinical summaries]
+    skills: [intake validation, scheduling, clinical summarization, documentation quality]
+    tool_profile: regulated
+    agents: [Intake Agent, Scheduling Agent, Clinical Documentation Agent]
+  - domain: Supply Chain
+    department: Supply Chain Operations
+    work: [forecasting, inventory, shipment tracking, supplier issues]
+    skills: [demand forecasting, inventory analysis, logistics tracking, supplier coordination]
+    tool_profile: operations
+    agents: [Demand Agent, Inventory Agent, Logistics Agent, Supplier Agent]
+  - domain: Manufacturing
+    department: Plant Operations
+    work: [scheduling, predictive maintenance, defect analysis]
+    skills: [production scheduling, maintenance analysis, quality analysis, root cause analysis]
+    tool_profile: operations
+    agents: [Production Agent, Maintenance Agent, Quality Agent]
+  - domain: Engineering
+    department: Software Engineering
+    work: [design, code, testing, deployment]
+    skills: [architecture, software development, testing, release engineering]
+    tool_profile: engineering
+    agents: [Architect Agent, Developer Agent, QA Agent, DevOps Agent]
+  - domain: Data / AI
+    department: Data and AI
+    work: [pipelines, models, retrieval, evaluations]
+    skills: [data engineering, model development, retrieval design, model evaluation]
+    tool_profile: data
+    agents: [Data Engineer Agent, ML Agent, RAG Agent, Evaluation Agent]
+  - domain: Operations
+    department: Business Operations
+    work: [daily operations, exceptions, SLA monitoring]
+    skills: [workflow management, exception handling, incident coordination, SLA analysis]
+    tool_profile: operations
+    agents: [Operations Agent, Workflow Agent, Incident Agent, SLA Agent]
+  - domain: Research
+    department: Research and Intelligence
+    work: [research, comparison, synthesis]
+    skills: [source discovery, evidence evaluation, comparative analysis, synthesis]
+    tool_profile: research
+    agents: [Research Agent, Analyst Agent, Competitive Intelligence Agent]
+  - domain: Innovation
+    department: Innovation Lab
+    work: [emerging technology, patents, technology scouting]
+    skills: [technology scanning, patent research, feasibility assessment, trend analysis]
+    tool_profile: research
+    agents: [Emerging-Tech Agent, Patent Agent, Technology Scout Agent]
+
+workflows:
+  loan_processing:
+    chain: [Lending Agent, KYC Agent, AML Agent, Fraud Agent, Risk Agent, Document Agent]
+    approval: credit_decision
+  sales_pipeline:
+    chain: [SDR Agent, Account Executive Agent, Proposal Agent, Pricing Agent, Contract Agent, CRM Agent]
+    approval: contract_signature
+
+delegation_policy:
+  business_agents:
+    may: [define outcome, gather requirements, analyze evidence, recommend action]
+    may_not: [execute privileged tool directly, bypass approval, self-increase budget]
+  technical_agents:
+    may: [execute explicitly delegated technical task through allowed tools]
+    must: [honor agent control state, return evidence, stop at approval gates]

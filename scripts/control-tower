@@ -60,8 +60,11 @@ case "$action" in
   routers)
     exec python3 "$(dirname "$0")/router_federation.py" "${@:2}"
     ;;
+  run)
+    exec python3 "$(dirname "$0")/execution_gateway.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|residency|bench|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference|routers}" >&2
+    echo "usage: control-tower {status|models|residency|bench|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference|routers|run}" >&2
     exit 2
     ;;
 esac

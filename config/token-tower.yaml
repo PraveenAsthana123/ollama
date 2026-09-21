@@ -34,7 +34,7 @@ pipeline:
     enabled: true
     default_input_budget: 3500
   exact_cache:
-    enabled: false
+    enabled: true
     adapter: redis
     ttl_seconds: 3600
   semantic_cache:

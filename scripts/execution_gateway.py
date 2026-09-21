@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import inference_router  # noqa: E402
 import gpu_scheduler  # noqa: E402
 import semantic_cache  # noqa: E402
+import injection_guard  # noqa: E402
 from agent_monitor import EventStore  # noqa: E402
 
 try:
@@ -105,6 +106,30 @@ def _ollama_generate(endpoint: str, model: str, query: str, keep_alive: str, tim
         return json.loads(resp.read().decode())
 
 
+def _check_rate_limit(cfg: dict) -> dict | None:
+    """Fixed-window counter, global (no per-caller identity exists on this
+    single-user local tool -- see config/inference-control-tower.yaml's
+    rate_limit block for why). Returns a block reason dict if the window's
+    request count is already at/over the limit, else None. Fails open (never
+    blocks) if Redis is unreachable -- same degrade posture as every other
+    cache/scheduler component here; a limiter that can itself take the
+    system down when its backend is unavailable is worse than no limiter."""
+    if not cfg.get("enabled") or not _redis_client:
+        return None
+    window = int(time.time() // cfg["window_seconds"])
+    key = f"execution_gateway:ratelimit:{window}"
+    try:
+        count = _redis_client.incr(key)
+        if count == 1:
+            _redis_client.expire(key, cfg["window_seconds"])
+    except Exception:
+        return None
+    if count > cfg["max_requests"]:
+        return {"decision": "blocked", "reason": "rate_limit_exceeded",
+                "detail": f"{count}/{cfg['max_requests']} requests in the current {cfg['window_seconds']}s window"}
+    return None
+
+
 def execute(query: str, kind: str = "prose", context: str = "", priority: int = 0) -> dict[str, Any]:
     inference_config = yaml.safe_load(INFERENCE_CONFIG.read_text())
     token_config = yaml.safe_load(TOKEN_TOWER_CONFIG.read_text())
@@ -114,6 +139,36 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
     store = EventStore(EVENTS_PATH)
 
     t0 = time.monotonic()
+
+    rate_limited = _check_rate_limit(inference_config.get("rate_limit", {"enabled": False}))
+    if rate_limited is not None:
+        store.append({
+            "category": "model", "status": "blocked", "agent_id": "execution_gateway",
+            "name": "rate_limiter", "latency_ms": round((time.monotonic() - t0) * 1000, 1),
+            "reason": rate_limited["reason"],
+        })
+        return {**rate_limited, "cache_hit": False, "latency_ms": round((time.monotonic() - t0) * 1000, 1)}
+
+    guard_cfg = inference_config.get("injection_guard", {"enabled": False})
+    if guard_cfg.get("enabled"):
+        scan = injection_guard.scan(query)
+        if scan["flagged"]:
+            # Always logged as a real security-category event, regardless
+            # of whether this blocks -- a bypassed/false-negative pattern is
+            # still visible in the event store, not silently lost.
+            store.append({
+                "category": "security", "status": "blocked" if guard_cfg.get("block_on_match") else "completed",
+                "agent_id": "execution_gateway", "name": "injection_guard",
+                "latency_ms": round((time.monotonic() - t0) * 1000, 1),
+                "matched_patterns": scan["matched_patterns"],
+            })
+            if guard_cfg.get("block_on_match"):
+                return {
+                    "cache_hit": False, "decision": "blocked", "reason": "injection_pattern_matched",
+                    "detail": "Heuristic pattern match only -- see scripts/injection_guard.py for scope/limits.",
+                    "latency_ms": round((time.monotonic() - t0) * 1000, 1),
+                }
+
     cache_key = _cache_key(query, kind, context)
 
     if exact_cache_cfg["enabled"] and _redis_client:

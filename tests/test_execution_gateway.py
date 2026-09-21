@@ -3,6 +3,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+import redis
 
 import scripts.execution_gateway as gateway
 import scripts.semantic_cache as semantic_cache
@@ -140,3 +141,66 @@ def test_real_semantic_cache_misses_on_genuinely_different_query(real_semantic_c
 
     assert second["cache_hit"] is False
     assert mock_gen.call_count == 2  # a genuinely different query must always regenerate
+
+
+# --- Rate limiting (real Redis, isolated fixed-window key per test) ------
+
+def _fresh_rate_limit_client() -> redis.Redis:
+    client = redis.Redis(host="127.0.0.1", port=6379)
+    for key in client.keys("execution_gateway:ratelimit:*"):
+        client.delete(key)
+    return client
+
+
+def test_rate_limit_allows_up_to_the_configured_max():
+    client = _fresh_rate_limit_client()
+    with patch.object(gateway, "_redis_client", client):
+        cfg = {"enabled": True, "window_seconds": 60, "max_requests": 3}
+        results = [gateway._check_rate_limit(cfg) for _ in range(3)]
+    assert all(r is None for r in results)
+
+
+def test_rate_limit_blocks_over_the_configured_max():
+    client = _fresh_rate_limit_client()
+    with patch.object(gateway, "_redis_client", client):
+        cfg = {"enabled": True, "window_seconds": 60, "max_requests": 3}
+        for _ in range(3):
+            assert gateway._check_rate_limit(cfg) is None
+        blocked = gateway._check_rate_limit(cfg)
+    assert blocked is not None
+    assert blocked["decision"] == "blocked"
+    assert blocked["reason"] == "rate_limit_exceeded"
+
+
+def test_rate_limit_fails_open_when_redis_unavailable():
+    with patch.object(gateway, "_redis_client", None):
+        cfg = {"enabled": True, "window_seconds": 60, "max_requests": 1}
+        assert gateway._check_rate_limit(cfg) is None
+
+
+def test_rate_limit_disabled_in_config_never_blocks():
+    client = _fresh_rate_limit_client()
+    with patch.object(gateway, "_redis_client", client):
+        cfg = {"enabled": False, "window_seconds": 60, "max_requests": 1}
+        results = [gateway._check_rate_limit(cfg) for _ in range(5)]
+    assert all(r is None for r in results)
+
+
+def test_execute_returns_blocked_decision_when_rate_limited():
+    """Uses the real config/inference-control-tower.yaml rate_limit block
+    (enabled: true, max_requests: 30) -- exhausts the real window, then
+    confirms execute() itself honors the block and never reaches Ollama."""
+    client = _fresh_rate_limit_client()
+    real_cfg = gateway.yaml.safe_load(gateway.INFERENCE_CONFIG.read_text())["rate_limit"]
+    assert real_cfg["enabled"] is True  # sanity: this test is only meaningful if real config has it on
+
+    with patch.object(gateway, "_redis_client", client), \
+         patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "should not be reached"}) as mock_gen:
+        for _ in range(real_cfg["max_requests"]):
+            gateway._check_rate_limit(real_cfg)  # consume every slot in the real window
+        result = gateway.execute("this should be blocked", kind="prose")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "rate_limit_exceeded"
+    mock_gen.assert_not_called()

@@ -40,3 +40,23 @@ safety:
   no_credential_storage: true
   no_automatic_paid_fallback: true
   pair_is_not_single_request_gpu_pooling: true
+
+rate_limit:
+  enabled: true
+  window_seconds: 60
+  max_requests: 30
+
+injection_guard:
+  enabled: true
+  block_on_match: true
+  # Heuristic pattern-matching only (see scripts/injection_guard.py's own
+  # docstring) -- catches blatant/naive attempts, not a robust defense
+  # against obfuscated or novel adversarial phrasing. Flags always logged
+  # regardless of block_on_match, so a false-negative bypass is still
+  # visible in the event store even when this control doesn't stop it.
+  # A single-machine, single-user local tool -- this is a global limiter
+  # (no per-caller identity exists to key on), meant to catch a runaway
+  # loop or misconfigured automation hammering the gateway, not to police
+  # multiple distinct users. 30/min is generous for interactive use (the
+  # measured warm generation path alone takes several seconds) while still
+  # bounding worst-case GPU/Ollama load from a stuck retry loop.

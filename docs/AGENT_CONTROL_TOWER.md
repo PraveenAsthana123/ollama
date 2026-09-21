@@ -176,3 +176,5 @@ Hierarchical delegation, dependency scheduling, shared results, retries, and
 review completion are defined in [the Supervisor Tower](SUPERVISOR_TOWER.md).
 Evidence-based readiness across the complete platform is tracked in the
 [Agentic Engineering lifecycle](AGENTIC_ENGINEERING.md).
+Scoped cross-agent evidence and retention are provided by
+[Collective Memory](COLLECTIVE_MEMORY.md).

@@ -14,7 +14,7 @@ stages:
   - {id: 11, name: Handoff / Delegation, status: implemented, evidence: [scripts/supervisor.py]}
   - {id: 12, name: A2A Communication, status: planned, evidence: []}
   - {id: 13, name: MCP / Tool Calling, status: external, evidence: [docs/AGENT_HARNESS.md]}
-  - {id: 14, name: Shared / Collective Memory, status: planned, evidence: []}
+  - {id: 14, name: Shared / Collective Memory, status: implemented, evidence: [scripts/collective_memory.py, config/collective-memory.yaml]}
   - {id: 15, name: Model Router, status: implemented, evidence: [scripts/token_router.py, config/litellm.yaml]}
   - {id: 16, name: Agent Router, status: implemented, evidence: [scripts/supervisor.py, config/supervisor-tower.yaml]}
   - {id: 17, name: Tool Router, status: implemented, evidence: [scripts/agent_control.py, config/agent-control.yaml]}
@@ -34,9 +34,6 @@ production_gates:
   - name: a2a_protocol
     status: open
     requirement: Authenticate, authorize, bound, trace, and replay inter-agent messages.
-  - name: collective_memory
-    status: open
-    requirement: Add scoped retention, provenance, access control, deletion, and stale-memory evaluation.
   - name: continuous_evaluation
     status: open
     requirement: Implement task and trace evaluation with release thresholds and regression datasets.

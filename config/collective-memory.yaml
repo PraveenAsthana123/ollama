@@ -1,0 +1,35 @@
+version: 1
+database: ~/.local/state/ollama-control-tower/memory/collective.db
+
+scopes:
+  task:
+    default_ttl_seconds: 86400
+    write_approval: false
+  agent:
+    default_ttl_seconds: 604800
+    write_approval: false
+  team:
+    default_ttl_seconds: 2592000
+    write_approval: false
+  global:
+    default_ttl_seconds: 7776000
+    write_approval: true
+
+trust_levels: [untrusted, observed, verified]
+retrieval:
+  default_limit: 8
+  default_token_budget: 1200
+  minimum_term_overlap: 1
+  treat_as_untrusted_evidence: true
+
+privacy:
+  reject_secret_keys: [authorization, password, secret, api_key, private_key]
+  store_raw_prompts: false
+  store_credentials: false
+
+governance:
+  require_owner: true
+  require_provenance: true
+  deduplicate_by_content_hash: true
+  allow_hard_delete: true
+  audit_events: true

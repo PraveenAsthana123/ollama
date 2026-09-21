@@ -10,7 +10,7 @@ def test_all_25_stages_have_honest_evidence_status():
     result = audit(load(CONFIG))
     assert result["valid"] is True
     assert len(result["stages"]) == 25
-    assert result["counts"] == {"implemented": 18, "contract": 4, "planned": 2, "external": 1}
+    assert result["counts"] == {"implemented": 19, "contract": 4, "planned": 1, "external": 1}
 
 
 def test_audit_detects_missing_implemented_evidence(tmp_path):
@@ -23,3 +23,4 @@ def test_production_gaps_remain_explicit():
     result = audit(load(CONFIG))
     assert "runtime_adapters" in result["production_gates_open"]
     assert "continuous_evaluation" in result["production_gates_open"]
+    assert "collective_memory" not in result["production_gates_open"]

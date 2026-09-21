@@ -39,6 +39,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 [the business agent map](docs/BUSINESS_AGENT_MAP.md),
 [the agent monitoring tower](docs/AGENT_MONITORING.md),
 [the AgentOps layer](docs/AGENTOPS.md),
+[the collective memory layer](docs/COLLECTIVE_MEMORY.md),
 [the agent harness manager](docs/AGENT_HARNESS.md),
 [the supervisor tower](docs/SUPERVISOR_TOWER.md),
 [the Agentic Engineering lifecycle](docs/AGENTIC_ENGINEERING.md),
@@ -53,6 +54,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/business_registry.py` — validates and queries business roles and workflows.
 - `scripts/agent_monitor.py` — private event ledger, fleet KPIs, and alert decisions.
 - `scripts/agentops.py` — session replay, incidents, evaluations, and CI quality gates.
+- `scripts/collective_memory.py` — scoped, expiring, token-bounded shared evidence.
 - `scripts/harness_manager.py` — resolves runtime profiles and evidence-gated runs.
 - `scripts/supervisor.py` — bounded DAG scheduling, routing, blackboard, retries, and review.
 - `scripts/platform_audit.py` — verifies all 25 lifecycle stages against repository evidence.
@@ -65,6 +67,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `config/business-agent-registry.yaml` — domains, supervisors, roles, skills, tools, and approval gates.
 - `config/agent-monitoring.yaml` — telemetry dimensions, thresholds, privacy, and optional exporters.
 - `config/agentops.yaml` — twelve operational areas and release-quality thresholds.
+- `config/collective-memory.yaml` — scope, retention, trust, retrieval, and governance policy.
 - `config/harness-profiles.yaml` — coding, security, QA, data, and production harness policy.
 - `config/supervisor-tower.yaml` — hierarchy, worker routes, finish gates, and supervisor limits.
 - `config/agentic-engineering-lifecycle.yaml` — readiness status, evidence, and production gates.

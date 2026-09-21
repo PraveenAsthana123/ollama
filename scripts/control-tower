@@ -45,8 +45,11 @@ case "$action" in
   agentops)
     exec python3 "$(dirname "$0")/agentops.py" "${@:2}"
     ;;
+  memory)
+    exec python3 "$(dirname "$0")/collective_memory.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory}" >&2
     exit 2
     ;;
 esac

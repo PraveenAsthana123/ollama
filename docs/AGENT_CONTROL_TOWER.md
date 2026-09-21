@@ -168,3 +168,5 @@ for proof that every external worker is installed or authorized.
 Business roles and cross-functional workflows are defined separately in
 [the Business Agent Map](BUSINESS_AGENT_MAP.md). The business registry selects
 the responsible role; this control plane applies runtime state and safety policy.
+Fleet telemetry, alert thresholds, and optional observability exporters are
+defined in [the Agent Monitoring Tower](AGENT_MONITORING.md).

@@ -45,3 +45,6 @@ validated compatible-node setup.
 The router produces a plan and never calls an external provider itself. A
 runtime adapter performs health checks and inference, records AgentOps events,
 honors Agent Control decisions, and returns output to the evaluator.
+
+When more than one gateway is deployed, [Router Federation](ROUTER_FEDERATION.md)
+filters and ranks eligible gateway adapters before this provider plan executes.

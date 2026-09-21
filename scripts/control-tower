@@ -15,6 +15,12 @@ case "$action" in
     curl --noproxy '*' -fsS "$base_url/api/tags"
     echo
     ;;
+  residency)
+    exec python3 "$(dirname "$0")/model_residency.py"
+    ;;
+  bench)
+    exec python3 "$(dirname "$0")/bench_production_models.py"
+    ;;
   warm)
     exec python3 "$(dirname "$0")/warm_models.py"
     ;;
@@ -51,8 +57,11 @@ case "$action" in
   inference)
     exec python3 "$(dirname "$0")/inference_router.py" "${@:2}"
     ;;
+  routers)
+    exec python3 "$(dirname "$0")/router_federation.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference}" >&2
+    echo "usage: control-tower {status|models|residency|bench|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference|routers}" >&2
     exit 2
     ;;
 esac

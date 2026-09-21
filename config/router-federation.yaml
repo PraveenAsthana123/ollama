@@ -1,0 +1,103 @@
+version: 1
+selection_weights: {quality: 0.30, latency: 0.15, cost: 0.20, privacy: 0.15, fallback_success: 0.15, gpu_efficiency: 0.05}
+circuit_breaker: {failure_threshold: 3, cooldown_seconds: 60}
+credentials: environment_only
+
+adapters:
+  custom:
+    kind: policy_router
+    enabled: true
+    installed: true
+    capabilities: [semantic, agent, model, provider, mcp, budget, privacy]
+  litellm:
+    kind: gateway
+    enabled: true
+    installed: true
+    endpoint: http://127.0.0.1:4400/v1
+    capabilities: [openai_api, fallback, budget, rate_limit, ollama]
+  claude_code_router:
+    kind: gateway
+    enabled: false
+    installed: false
+    capabilities: [anthropic_api, openai_api, fallback, coding_clients, ollama]
+  bifrost:
+    kind: gateway
+    enabled: false
+    installed: false
+    capabilities: [openai_api, fallback, load_balance, semantic_cache, ollama]
+  portkey:
+    kind: gateway
+    enabled: false
+    installed: false
+    capabilities: [openai_api, fallback, load_balance, semantic_cache, analytics]
+  helicone:
+    kind: gateway
+    enabled: false
+    installed: false
+    capabilities: [openai_api, fastest, cheapest, reliable, cache, limits]
+  tensorzero:
+    kind: gateway
+    enabled: false
+    installed: false
+    capabilities: [openai_api, evaluation, experiments, fallback, observability]
+  openrouter:
+    kind: cloud_aggregator
+    enabled: false
+    installed: false
+    capabilities: [openai_api, cloud_models]
+  kiro_gateway:
+    kind: compatibility_gateway
+    enabled: false
+    installed: false
+    capabilities: [openai_api, anthropic_api, coding_clients]
+  kiroxy:
+    kind: compatibility_gateway
+    enabled: false
+    installed: false
+    capabilities: [anthropic_api, credential_pool, token_refresh]
+  routellm:
+    kind: learned_router
+    enabled: false
+    installed: false
+    capabilities: [complexity, weak_strong, ollama]
+  semantic_router:
+    kind: semantic_router
+    enabled: false
+    installed: false
+    capabilities: [local_embeddings, intent, tool_route]
+  continue:
+    kind: coding_client
+    enabled: false
+    installed: false
+    capabilities: [chat, edit, autocomplete, embeddings, reranking, ollama]
+  aider:
+    kind: coding_client
+    enabled: false
+    installed: false
+    capabilities: [code_map, relevant_files, cloud_models, local_models]
+  open_webui:
+    kind: user_interface
+    enabled: false
+    installed: false
+    capabilities: [ollama, openai_api, pipelines]
+  llmlingua:
+    kind: prompt_compressor
+    enabled: false
+    installed: false
+    capabilities: [prompt_compression]
+  gptcache:
+    kind: response_cache
+    enabled: false
+    installed: false
+    capabilities: [semantic_cache]
+  lmcache:
+    kind: kv_cache
+    enabled: false
+    installed: false
+    capabilities: [kv_reuse, prefill_reuse]
+
+safety:
+  kiro_is_not_a_generic_router: true
+  no_free_capacity_guarantees: true
+  no_automatic_credential_pooling: true
+  adapters_require_independent_validation: true

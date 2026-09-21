@@ -42,3 +42,12 @@ routing:
   DevOps Agent: {harness: production, model: code}
   FinOps Agent: {harness: data, model: fast}
   Reviewer Agent: {harness: qa, model: strong}
+  # Added 2026-09-21 for job-portal's real "prepare application" task -- the
+  # first genuinely real multi-agent workload this supervisor has run (see
+  # job-portal-prototype/prepare_application_supervised.py). Not generic
+  # scaffolding: each agent below wraps an already-real, already-working
+  # job-portal function.
+  Resume Scorer Agent: {harness: data, model: fast}
+  Resume Gap Agent: {harness: data, model: code}
+  Question Bank Agent: {harness: data, model: fast}
+  Application Filler Agent: {harness: production, model: fast}

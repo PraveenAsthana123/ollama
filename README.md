@@ -41,6 +41,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 [the AgentOps layer](docs/AGENTOPS.md),
 [the collective memory layer](docs/COLLECTIVE_MEMORY.md),
 [the inference control tower](docs/INFERENCE_CONTROL_TOWER.md),
+[the router federation](docs/ROUTER_FEDERATION.md),
 [the global shared installation](docs/GLOBAL_INSTALL.md),
 [the agent harness manager](docs/AGENT_HARNESS.md),
 [the supervisor tower](docs/SUPERVISOR_TOWER.md),
@@ -58,6 +59,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/agentops.py` — session replay, incidents, evaluations, and CI quality gates.
 - `scripts/collective_memory.py` — scoped, expiring, token-bounded shared evidence.
 - `scripts/inference_router.py` — cache, task, model, provider, fallback, and evaluation plans.
+- `scripts/router_federation.py` — capability filtering and evidence-based gateway ranking.
 - `scripts/install_global.sh` — publishes one shared user-level installation for every project.
 - `scripts/harness_manager.py` — resolves runtime profiles and evidence-gated runs.
 - `scripts/supervisor.py` — bounded DAG scheduling, routing, blackboard, retries, and review.
@@ -73,6 +75,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `config/agentops.yaml` — twelve operational areas and release-quality thresholds.
 - `config/collective-memory.yaml` — scope, retention, trust, retrieval, and governance policy.
 - `config/inference-control-tower.yaml` — local, PAIR, free-cloud, paid-cloud, and quality policy.
+- `config/router-federation.yaml` — classified adapter catalog and benchmark weights.
 - `config/harness-profiles.yaml` — coding, security, QA, data, and production harness policy.
 - `config/supervisor-tower.yaml` — hierarchy, worker routes, finish gates, and supervisor limits.
 - `config/agentic-engineering-lifecycle.yaml` — readiness status, evidence, and production gates.

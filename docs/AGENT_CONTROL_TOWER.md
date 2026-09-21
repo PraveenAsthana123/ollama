@@ -178,3 +178,5 @@ Evidence-based readiness across the complete platform is tracked in the
 [Agentic Engineering lifecycle](AGENTIC_ENGINEERING.md).
 Scoped cross-agent evidence and retention are provided by
 [Collective Memory](COLLECTIVE_MEMORY.md).
+Fleet-wide state, hierarchy, budgets, and stalled-agent signals are available
+through [Fleet Control](FLEET_CONTROL.md).

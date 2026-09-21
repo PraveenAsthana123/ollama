@@ -23,6 +23,9 @@ RUNNABLE = {"RUNNING", "STEPPING"}
 @dataclass
 class AgentState:
     agent_id: str
+    parent_agent_id: str = ""
+    session_id: str = ""
+    priority: int = 5
     status: str = "PAUSED"
     task: str = ""
     model: str = "fast"
@@ -154,6 +157,14 @@ def control(state: AgentState, action: str, value: str | None) -> dict[str, Any]
         state.reassignments += 1
     elif action == "model":
         state.model = value or state.model
+    elif action == "priority":
+        try:
+            priority = int(value or "")
+        except ValueError as error:
+            raise ValueError("priority must be an integer from 1 to 10") from error
+        if not 1 <= priority <= 10:
+            raise ValueError("priority must be an integer from 1 to 10")
+        state.priority = priority
     elif action == "block-tool" and value and value not in state.blocked_tools:
         state.blocked_tools.append(value)
     elif action == "block-mcp" and value and value not in state.blocked_mcp:
@@ -165,7 +176,7 @@ def control(state: AgentState, action: str, value: str | None) -> dict[str, Any]
         state.pending_action["decision"] = "rejected"
         state.status = "PAUSED"
     else:
-        if action not in {"redirect", "reassign", "model", "block-tool", "block-mcp"}:
+        if action not in {"redirect", "reassign", "model", "priority", "block-tool", "block-mcp"}:
             raise ValueError(f"action not valid from {state.status}: {action}")
     return {"action": action, "status": state.status}
 
@@ -179,19 +190,24 @@ def main() -> None:
     create.add_argument("--task", default="")
     create.add_argument("--model", default="fast")
     create.add_argument("--worker", default="")
+    create.add_argument("--parent-agent-id", default="")
+    create.add_argument("--session-id", default="")
+    create.add_argument("--priority", type=int, choices=range(1, 11), metavar="1-10", default=5)
     create.add_argument("--trust", choices=("restricted", "standard", "trusted"), default="standard")
     status = sub.add_parser("status"); status.add_argument("agent_id")
     event = sub.add_parser("event"); event.add_argument("agent_id"); event.add_argument("event_json")
     tool = sub.add_parser("check-tool"); tool.add_argument("agent_id"); tool.add_argument("tool"); tool.add_argument("--mcp", default="")
     for name in ("pause", "resume", "step", "stop", "kill", "approve", "reject"):
         item = sub.add_parser(name); item.add_argument("agent_id")
-    for name in ("redirect", "reassign", "model", "block-tool", "block-mcp"):
+    for name in ("redirect", "reassign", "model", "block-tool", "block-mcp", "priority"):
         item = sub.add_parser(name); item.add_argument("agent_id"); item.add_argument("value")
     args = parser.parse_args()
     store = StateStore(args.state_dir)
     if args.command == "create":
         state = AgentState(args.agent_id, task=args.task, model=args.model,
-                           worker=args.worker, trust=args.trust)
+                           worker=args.worker, trust=args.trust,
+                           parent_agent_id=args.parent_agent_id,
+                           session_id=args.session_id, priority=args.priority)
         store.save(state); result = asdict(state)
     else:
         state = store.load(args.agent_id)

@@ -12,11 +12,9 @@ if [[ ! -x "$canonical_python" ]]; then
 fi
 
 install -d -m 755 "$share_root/config" "$share_root/docs" "$share_root/scripts" "$bin_root"
-install -m 644 "$repo_root"/config/* "$share_root/config/"
-install -m 644 "$repo_root"/docs/* "$share_root/docs/"
-install -m 755 "$repo_root"/scripts/*.py "$share_root/scripts/"
-install -m 755 "$repo_root/scripts/control-tower" "$share_root/scripts/control-tower"
-install -m 644 "$repo_root/README.md" "$repo_root/requirements.txt" "$share_root/"
+# Publish only committed artifacts. Other projects may be editing this shared
+# checkout, and their unstaged code must never leak into the global install.
+git -C "$repo_root" archive HEAD config docs scripts README.md requirements.txt | tar -x -C "$share_root"
 
 cat > "$bin_root/control-tower" <<EOF
 #!/usr/bin/env bash

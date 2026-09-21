@@ -42,6 +42,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 [the collective memory layer](docs/COLLECTIVE_MEMORY.md),
 [the inference control tower](docs/INFERENCE_CONTROL_TOWER.md),
 [the router federation](docs/ROUTER_FEDERATION.md),
+[the fleet control view](docs/FLEET_CONTROL.md),
 [the global shared installation](docs/GLOBAL_INSTALL.md),
 [the agent harness manager](docs/AGENT_HARNESS.md),
 [the supervisor tower](docs/SUPERVISOR_TOWER.md),
@@ -60,6 +61,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/collective_memory.py` — scoped, expiring, token-bounded shared evidence.
 - `scripts/inference_router.py` — cache, task, model, provider, fallback, and evaluation plans.
 - `scripts/router_federation.py` — capability filtering and evidence-based gateway ranking.
+- `scripts/fleet_view.py` — correlated fleet state, hierarchy, budgets, and health.
 - `scripts/install_global.sh` — publishes one shared user-level installation for every project.
 - `scripts/harness_manager.py` — resolves runtime profiles and evidence-gated runs.
 - `scripts/supervisor.py` — bounded DAG scheduling, routing, blackboard, retries, and review.

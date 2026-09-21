@@ -112,7 +112,19 @@ jobs:
           pip install -r requirements.txt
 
       - name: Install syft
-        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+        # Same retry as the grype install step below -- both use anchore's
+        # identical install-script pattern (GitHub release-tag lookup), so
+        # both are exposed to the same class of transient GitHub API 504.
+        run: |
+          for attempt in 1 2 3; do
+            if curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin; then
+              exit 0
+            fi
+            echo "syft install attempt $attempt failed, retrying in 10s..." >&2
+            sleep 10
+          done
+          echo "syft install failed after 3 attempts" >&2
+          exit 1
 
       - name: Pin real installed versions
         # syft's python cataloger deliberately skips unpinned ranges (our
@@ -132,7 +144,23 @@ jobs:
           retention-days: 90
 
       - name: Install grype
-        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+        # Real, observed flakiness (not hypothetical): grype's install
+        # script hit a genuine GitHub API 504 on the release-tag lookup
+        # twice in this repo's own CI history (runs 35615126886 and an
+        # earlier one) -- an external transient failure unrelated to this
+        # repo's code. Retrying the whole install (not just the curl) since
+        # the failure is inside the downloaded script's own tag-resolution
+        # logic, not the download itself.
+        run: |
+          for attempt in 1 2 3; do
+            if curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin; then
+              exit 0
+            fi
+            echo "grype install attempt $attempt failed, retrying in 10s..." >&2
+            sleep 10
+          done
+          echo "grype install failed after 3 attempts" >&2
+          exit 1
 
       - name: Scan SBOM for known vulnerabilities (SCA)
         # Real SCA, not just an inventory: fails the build on high/critical

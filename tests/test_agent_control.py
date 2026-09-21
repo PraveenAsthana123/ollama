@@ -36,6 +36,15 @@ def test_tool_and_mcp_policy():
     assert tool_decision(state, "shell.run", "terminal")["action"] == "block"
 
 
+def test_browser_external_form_fill_requires_review():
+    # Real job-portal use case: fill_application drives a real Playwright
+    # browser against a real third-party company's website. Regression
+    # test for a real gap found 2026-09-21 -- this tool name was classified
+    # "allow" by omission until added to the risky set.
+    state = AgentState("job-portal-prepare-application", status="RUNNING")
+    assert tool_decision(state, "browser.external_form_fill")["action"] == "review"
+
+
 def test_atomic_state_round_trip(tmp_path):
     store = StateStore(tmp_path)
     state = AgentState("security-agent-07", task="Scan API", status="RUNNING")

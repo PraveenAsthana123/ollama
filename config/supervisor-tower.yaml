@@ -24,7 +24,7 @@ workflow:
   require_acyclic_dependencies: true
   deterministic_aggregation: true
   reviewer_required: true
-  human_approval_for: [production_deployment, destructive_action, external_message]
+  human_approval_for: [production_deployment, destructive_action, external_message, browser_automation]
   shared_state: blackboard
   finish_when: [all_tasks_completed, reviewer_accepted, approvals_satisfied]
 

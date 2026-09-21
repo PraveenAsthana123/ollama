@@ -100,7 +100,14 @@ def tool_decision(state: AgentState, tool: str, mcp_server: str = "") -> dict[st
     if tool in {"credential.export", "sandbox.disable"}:
         return {"action": "block", "reason": "global_policy"}
     risky = {"git.push", "deploy.production", "email.send", "database.delete",
-             "filesystem.delete", "package.system_install", "memory.persist"}
+             "filesystem.delete", "package.system_install", "memory.persist",
+             # browser.external_form_fill: added 2026-09-21 -- job-portal's
+             # real fill_application task interacts with a real third-party
+             # company's website. It was found classified "allow" by
+             # omission (this set predates that real use case), which meant
+             # the one genuinely real risky action in the whole repo was
+             # silently NOT flagged by the policy engine meant to catch it.
+             "browser.external_form_fill"}
     if tool in risky or state.trust == "restricted":
         return {"action": "review", "reason": "approval_required"}
     return {"action": "allow", "reason": "policy_allows"}

@@ -42,8 +42,11 @@ case "$action" in
   platform)
     exec python3 "$(dirname "$0")/platform_audit.py" "${@:2}"
     ;;
+  agentops)
+    exec python3 "$(dirname "$0")/agentops.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops}" >&2
     exit 2
     ;;
 esac

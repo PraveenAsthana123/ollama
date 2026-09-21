@@ -10,7 +10,7 @@ def test_all_25_stages_have_honest_evidence_status():
     result = audit(load(CONFIG))
     assert result["valid"] is True
     assert len(result["stages"]) == 25
-    assert result["counts"] == {"implemented": 17, "contract": 4, "planned": 2, "external": 2}
+    assert result["counts"] == {"implemented": 18, "contract": 4, "planned": 2, "external": 1}
 
 
 def test_audit_detects_missing_implemented_evidence(tmp_path):

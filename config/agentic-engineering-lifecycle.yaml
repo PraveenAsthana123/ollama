@@ -20,7 +20,7 @@ stages:
   - {id: 17, name: Tool Router, status: implemented, evidence: [scripts/agent_control.py, config/agent-control.yaml]}
   - {id: 18, name: Context / Token Optimization, status: implemented, evidence: [scripts/token_router.py, scripts/token_metrics.py]}
   - {id: 19, name: Agent Evaluation, status: contract, evidence: [docs/AGENT_HARNESS.md]}
-  - {id: 20, name: AgentOps, status: external, evidence: [docs/AGENT_MONITORING.md]}
+  - {id: 20, name: AgentOps, status: implemented, evidence: [scripts/agentops.py, config/agentops.yaml]}
   - {id: 21, name: Observability, status: implemented, evidence: [scripts/agent_monitor.py, config/agent-monitoring.yaml]}
   - {id: 22, name: Security / Guardrails, status: implemented, evidence: [scripts/agent_control.py, config/harness-profiles.yaml]}
   - {id: 23, name: Human Approval, status: implemented, evidence: [scripts/supervisor.py, config/agent-control.yaml]}

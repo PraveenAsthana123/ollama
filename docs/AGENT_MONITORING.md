@@ -118,3 +118,6 @@ Adapters must never include credentials, raw authorization headers, complete
 prompt bodies, or unrestricted tool arguments. Export failures must not block
 the agent's local control loop: retain the event locally, mark the exporter
 unhealthy, and retry with bounded backoff.
+
+Session replay, incident extraction, and CI/CD evaluation decisions are built
+on these events by [the AgentOps layer](AGENTOPS.md).

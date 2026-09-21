@@ -1,0 +1,34 @@
+version: 1
+control_areas:
+  - agent_lifecycle
+  - task_execution
+  - handoff_communication
+  - collective_memory
+  - model_routing
+  - token_cost
+  - tool_mcp_usage
+  - latency_performance
+  - failures_retries
+  - quality_evaluation
+  - security_guardrails
+  - human_approval_audit
+
+quality_gate:
+  minimum_success_rate: 0.90
+  minimum_quality_score: 0.80
+  minimum_grounding_score: 0.80
+  maximum_error_rate: 0.10
+  maximum_p95_latency_ms: 10000
+  maximum_cost_per_success_usd: 0.25
+  maximum_policy_violations: 0
+  require_quality_events: true
+  require_security_events: true
+
+incidents:
+  statuses: [failed, blocked, terminated]
+  categories: [security, health, task, mcp, model]
+
+replay:
+  include_payload_bodies: false
+  order_by: timestamp
+  require_session_id: true

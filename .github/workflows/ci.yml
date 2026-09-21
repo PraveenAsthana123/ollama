@@ -72,3 +72,36 @@ jobs:
         run: pip install semgrep
       - name: Run semgrep (Python security + correctness rules)
         run: semgrep --config p/python --config p/security-audit --error --quiet scripts/
+
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies (to record real, resolved versions)
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Pin real installed versions
+        # syft's python cataloger deliberately skips unpinned ranges (our
+        # requirements.txt uses PyYAML>=6.0,<7.0 style ranges on purpose,
+        # so a patch release doesn't need a manual bump) -- generate the
+        # exact resolved versions actually installed this run instead of
+        # guessing, so the SBOM reflects what's really running.
+        run: pip freeze | grep -iE "^(pyyaml|redis)==" > requirements-lock.txt
+
+      - name: Generate SBOM (CycloneDX)
+        run: syft dir:. -o cyclonedx-json=sbom.cdx.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          retention-days: 90

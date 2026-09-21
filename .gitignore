@@ -11,3 +11,5 @@ blobs/
 *.log
 !reports/*.jsonl
 !reports/operations.log
+requirements-lock.txt
+sbom.cdx.json

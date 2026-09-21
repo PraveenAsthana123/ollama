@@ -5,12 +5,31 @@ import json
 import os
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+import yaml
+
+
+def _default_models() -> list[str]:
+    """Real fix, 2026-09-21: this used to hardcode "qwen3:1.7b,qwen2.5-coder:1.5b"
+    as a plain string duplicate of config/token-tower.yaml's tiers.*.model
+    values -- exactly the kind of drift this session already found and fixed
+    twice elsewhere (token-tower.yaml's own cache flags vs its docs; this
+    repo's checksummed config baseline exists specifically to catch this
+    class of bug). Derive it from the real config's prewarm flags instead, so
+    a future tier change or prewarm-policy change doesn't require remembering
+    to also edit this separate hardcoded copy.
+
+    tiers.strong.prewarm is deliberately false (VRAM: OLLAMA_MAX_LOADED_MODELS=2
+    on this machine) -- NOT included here, and that's correct, not a gap."""
+    config_path = Path(__file__).resolve().parents[1] / "config/token-tower.yaml"
+    tiers = yaml.safe_load(config_path.read_text())["tiers"]
+    return [spec["model"] for spec in tiers.values() if spec.get("prewarm")]
 
 
 BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
-MODELS = [m.strip() for m in os.getenv(
-    "OLLAMA_WARM_MODELS", "qwen3:1.7b,qwen2.5-coder:1.5b"
-).split(",") if m.strip()]
+_env_override = os.getenv("OLLAMA_WARM_MODELS")
+MODELS = [m.strip() for m in _env_override.split(",") if m.strip()] if _env_override else _default_models()
 KEEP_ALIVE = os.getenv("OLLAMA_WARM_KEEP_ALIVE", "30m")
 
 

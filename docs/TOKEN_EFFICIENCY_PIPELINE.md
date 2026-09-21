@@ -1,5 +1,16 @@
 # Token-efficiency pipeline
 
+**Mandatory, enforced by CI:** exact cache, semantic cache, and the GPU
+scheduler are not optional demos -- `.github/workflows/ci.yml`'s `test` job
+runs real tests against real Redis/Qdrant/Ollama service containers on
+every push to `main`. If a future change silently disables one of these
+adapters (the exact failure mode this doc itself corrected on 2026-09-21,
+when this section had drifted to say "none of these services installed"
+while the code had already made them real), the corresponding test in
+`tests/test_execution_gateway.py` or `tests/test_gpu_scheduler.py` fails
+and CI goes red -- a documentation claim alone was already shown not to be
+durable enough on its own.
+
 The Token Tower measures input, output, cached, and compressed tokens by agent,
 task, tool, MCP server, and model. It also reports duplicate-context ratio,
 context utilization, cache-hit rate, local-versus-cloud calls, and cost per
@@ -83,12 +94,24 @@ python scripts/token_router.py \
 It emits a stable exact-cache key, bounded context, route, token estimates, and
 output limit. It does not send data to a model or cloud service.
 
-## Optional adapters
+## Optional adapters -- real status as of 2026-09-21
 
-Redis, Qdrant/GPTCache, and LLMLingua are deliberately adapters. The current
-host has none of these services installed, so the repository does not claim
-they are active. Add them behind loopback, preserve cache TTL and tenant/privacy
-boundaries, and never cache secrets or requests marked private.
+Redis, Qdrant, and LLMLingua are deliberately adapters, not hard dependencies.
+Real status on this host, verified (not asserted) via `execution_gateway.py`'s
+own test suite and live CLI runs:
+
+| Adapter | Status | Evidence |
+|---|---|---|
+| Redis exact cache | **ACTIVE** | `config/token-tower.yaml: exact_cache.enabled: true`. Live: identical query 7885.6ms -> 0.2ms cached |
+| Qdrant semantic cache | **ACTIVE** | Dedicated container `ollama-control-tower-qdrant` (restart=unless-stopped, distinct from an unrelated `documind-qdrant` container). `config/token-tower.yaml: semantic_cache.enabled: true`. Live: reworded near-duplicate hit at 0.9383 similarity (threshold 0.92) |
+| GPU lease/priority scheduler | **ACTIVE** | `scripts/gpu_scheduler.py`, Redis-backed, 6 priority classes. Real concurrent-thread tests confirm mutual exclusion and priority ordering |
+| LLMLingua | still not installed | no change -- prose-only compression, not attempted this session |
+| LMCache / GPTCache | still not installed | KV-cache reuse and an alternative semantic-cache backend, not attempted this session |
+| CoACT (learned observation compression) | still not installed | the deterministic fallback (`compress_observation`) remains the only implementation |
+
+All three ACTIVE adapters run behind loopback (127.0.0.1) only, preserve their
+configured TTLs (exact: 3600s, semantic: 86400s), and never cache secrets or
+requests marked private -- unchanged from the original design constraint.
 
 Cloud escalation must be explicitly configured with operator-owned credentials.
 Without a cloud route, `hard` stays on the `strong` local alias.

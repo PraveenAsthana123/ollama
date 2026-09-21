@@ -25,6 +25,7 @@ import hmac
 import json
 import os
 import secrets
+import socket
 import shlex
 import subprocess
 import sys
@@ -159,12 +160,18 @@ def health_status() -> dict:
     for name, url in (
         ("ollama", "http://127.0.0.1:11434/api/version"),
         ("litellm", "http://127.0.0.1:4400/health/liveliness"),
+        ("qdrant", "http://127.0.0.1:6333/healthz"),
     ):
         try:
             with urllib.request.urlopen(url, timeout=2) as response:  # nosemgrep: dynamic-urllib-use-detected -- URLs are the two fixed loopback literals above, never user input
                 services[name] = {"ok": response.status == 200, "http_status": response.status}
         except Exception as exc:
             services[name] = {"ok": False, "error": type(exc).__name__}
+    try:
+        with socket.create_connection(("127.0.0.1", 6379), timeout=2):
+            services["redis"] = {"ok": True}
+    except OSError as exc:
+        services["redis"] = {"ok": False, "error": type(exc).__name__}
     return {"ok": services["ollama"]["ok"], "services": services}
 
 

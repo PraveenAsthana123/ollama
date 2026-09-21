@@ -42,10 +42,11 @@ def test_health_is_live_but_does_not_generate():
         def __exit__(self, *_):
             return False
 
-    with patch.object(app.urllib.request, "urlopen", return_value=Response()) as get:
+    with patch.object(app.urllib.request, "urlopen", return_value=Response()) as get, \
+         patch.object(app.socket, "create_connection"):
         status = app.health_status()
     assert status["ok"] is True
-    assert get.call_count == 2
+    assert get.call_count == 3
     assert all("/api/generate" not in call.args[0] for call in get.call_args_list)
 
 

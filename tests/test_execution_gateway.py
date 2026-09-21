@@ -9,6 +9,11 @@ import redis
 import scripts.execution_gateway as gateway
 import scripts.semantic_cache as semantic_cache
 
+# Captured at import time, before any fixture can patch gateway_auth.authorized
+# -- a later `wraps=gateway.gateway_auth.authorized` would otherwise risk
+# wrapping an already-active mock instead of the real function, depending on
+# fixture ordering.
+_REAL_AUTHORIZED = gateway.gateway_auth.authorized
 
 EVENTS = Path("/tmp/test_execution_gateway_events.jsonl")
 
@@ -18,7 +23,8 @@ def isolate_execution_gateway():
     """Every test gets a clean event log, no real exact-cache, and no real
     semantic-cache lookups by default -- tests that want to exercise the
     real semantic cache opt in explicitly instead of silently depending on
-    real Qdrant/embedding state left over from another test."""
+    real Qdrant/embedding state left over from another test. Gateway auth
+    is bypassed globally by conftest.py's own autouse fixture, not here."""
     gateway.EVENTS_PATH = EVENTS
     if EVENTS.exists():
         EVENTS.unlink()
@@ -340,3 +346,62 @@ def test_pii_in_response_also_skips_caching():
 
     assert result["response"] == "Contact support at help@example.com"
     assert fake_redis.store == {}
+
+
+# --- Gateway authentication (real gateway_auth module, not mocked) -------
+
+@pytest.fixture
+def real_gateway_auth(monkeypatch, tmp_path):
+    """Isolates the real token to a throwaway path per test so tests never
+    read/write this machine's actual gateway token file."""
+    monkeypatch.setattr(gateway.gateway_auth, "_TOKEN_PATH", tmp_path / "gateway.token")
+    monkeypatch.setattr(gateway.gateway_auth, "_token_cache", None)
+    with patch.object(gateway.gateway_auth, "authorized", wraps=_REAL_AUTHORIZED):
+        yield
+
+
+def test_correct_token_is_authorized(real_gateway_auth):
+    real_token = gateway.gateway_auth._load_or_create_token()
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "ok"}) as mock_gen:
+        result = gateway.execute("hello", kind="prose", caller_token=real_token)
+
+    assert result["decision"] == "inference"
+    mock_gen.assert_called_once()
+
+
+def test_missing_token_is_blocked(real_gateway_auth):
+    gateway.gateway_auth._load_or_create_token()  # ensure a real token exists to be wrong against
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "should not run"}) as mock_gen:
+        result = gateway.execute("hello", kind="prose", caller_token=None)
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "unauthorized"
+    mock_gen.assert_not_called()
+
+
+def test_wrong_token_is_blocked(real_gateway_auth):
+    gateway.gateway_auth._load_or_create_token()
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "should not run"}) as mock_gen:
+        result = gateway.execute("hello", kind="prose", caller_token="definitely-not-the-real-token")
+
+    assert result["decision"] == "blocked"
+    assert result["reason"] == "unauthorized"
+    mock_gen.assert_not_called()
+
+
+def test_auth_blocks_before_reaching_ollama_or_consuming_rate_limit_budget(real_gateway_auth):
+    """Unauthorized calls must fail fast, before any Ollama call and
+    before consuming shared rate-limit budget a legitimate caller would
+    otherwise need."""
+    gateway.gateway_auth._load_or_create_token()
+    with patch.object(gateway, "_ollama_tags") as mock_tags, \
+         patch.object(gateway, "_ollama_generate") as mock_gen, \
+         patch.object(gateway, "_check_rate_limit") as mock_rl:
+        gateway.execute("hello", kind="prose", caller_token="wrong")
+
+    mock_tags.assert_not_called()
+    mock_gen.assert_not_called()
+    mock_rl.assert_not_called()

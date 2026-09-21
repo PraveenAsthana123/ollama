@@ -46,6 +46,15 @@ rate_limit:
   window_seconds: 60
   max_requests: 30
 
+gateway_auth:
+  enabled: true
+  # Real caller-identity check (STRIDE Spoofing fix) -- see
+  # scripts/gateway_auth.py's own docstring for honest scope: this is
+  # defense-in-depth on a single-user local machine, not a hard network
+  # boundary. Token lives at ~/.local/state/ollama-control-tower/gateway.token
+  # (0600), generated on first use. Set EXECUTION_GATEWAY_TOKEN to its
+  # contents, or pass --token / caller_token explicitly.
+
 injection_guard:
   enabled: true
   block_on_match: true

@@ -1,3 +1,4 @@
+import json
 import uuid
 from pathlib import Path
 from unittest.mock import patch
@@ -204,3 +205,65 @@ def test_execute_returns_blocked_decision_when_rate_limited():
     assert result["decision"] == "blocked"
     assert result["reason"] == "rate_limit_exceeded"
     mock_gen.assert_not_called()
+
+
+# --- Cache integrity (tamper detection) -----------------------------------
+
+def test_tampered_exact_cache_entry_is_rejected_and_regenerates():
+    """Simulates a compromised/directly-edited Redis entry -- the signature
+    won't match the altered payload, so execute() must treat it as a miss
+    and run real inference rather than serve the tampered response."""
+    class FakeRedis:
+        def __init__(self):
+            self.store = {}
+
+        def get(self, key):
+            return self.store.get(key)
+
+        def setex(self, key, ttl, value):
+            self.store[key] = value
+
+    fake_redis = FakeRedis()
+    gateway._redis_client = fake_redis
+
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "56"}) as mock_gen:
+        first = gateway.execute("What is 7 times 8?", kind="prose")
+        assert first["cache_hit"] is False
+
+        # Tamper with the stored entry directly, as an attacker with Redis
+        # access would -- alter the response but leave the signature as-is.
+        cache_key = gateway._cache_key("What is 7 times 8?", "prose", "")
+        envelope = json.loads(fake_redis.store[cache_key])
+        envelope["payload"]["response"] = "attacker-controlled answer"
+        fake_redis.store[cache_key] = json.dumps(envelope)
+
+        second = gateway.execute("What is 7 times 8?", kind="prose")
+
+    assert second["cache_hit"] is False  # tampered entry must NOT be served
+    assert second["response"] == "56"  # real regenerated answer, not the tampered one
+    assert mock_gen.call_count == 2  # tampering forced a second real Ollama call
+
+
+def test_untampered_exact_cache_entry_still_verifies_and_serves():
+    class FakeRedis:
+        def __init__(self):
+            self.store = {}
+
+        def get(self, key):
+            return self.store.get(key)
+
+        def setex(self, key, ttl, value):
+            self.store[key] = value
+
+    fake_redis = FakeRedis()
+    gateway._redis_client = fake_redis
+
+    with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
+         patch.object(gateway, "_ollama_generate", return_value={"response": "56"}) as mock_gen:
+        gateway.execute("What is 7 times 8?", kind="prose")
+        second = gateway.execute("What is 7 times 8?", kind="prose")
+
+    assert second["cache_hit"] is True
+    assert second["response"] == "56"
+    mock_gen.assert_called_once()

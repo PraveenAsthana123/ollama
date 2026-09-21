@@ -45,6 +45,7 @@ import inference_router  # noqa: E402
 import gpu_scheduler  # noqa: E402
 import semantic_cache  # noqa: E402
 import injection_guard  # noqa: E402
+import cache_integrity  # noqa: E402
 from agent_monitor import EventStore  # noqa: E402
 
 try:
@@ -173,20 +174,32 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
 
     if exact_cache_cfg["enabled"] and _redis_client:
         try:
-            cached = _redis_client.get(cache_key)
+            cached_raw = _redis_client.get(cache_key)
         except Exception:
-            cached = None
-        if cached:
-            result = json.loads(cached)
-            result["cache_hit"] = True
-            result["cache_type"] = "exact"
-            result["latency_ms"] = round((time.monotonic() - t0) * 1000, 1)
+            cached_raw = None
+        if cached_raw:
+            envelope = json.loads(cached_raw)
+            payload, signature = envelope.get("payload", {}), envelope.get("signature", "")
+            if cache_integrity.verify(payload, signature):
+                result = dict(payload)
+                result["cache_hit"] = True
+                result["cache_type"] = "exact"
+                result["latency_ms"] = round((time.monotonic() - t0) * 1000, 1)
+                store.append({
+                    "category": "model", "status": "completed", "agent_id": "execution_gateway",
+                    "name": result.get("model", "cache"), "latency_ms": result["latency_ms"],
+                    "cached_tokens": 1, "decision": "cache", "cache_type": "exact",
+                })
+                return result
+            # Signature mismatch -- the cached entry was altered since it was
+            # written (STRIDE Tampering). Never serve it. Real Ollama call
+            # runs instead, and the security event makes the tampering
+            # visible rather than silently falling through to a stale hit.
             store.append({
-                "category": "model", "status": "completed", "agent_id": "execution_gateway",
-                "name": result.get("model", "cache"), "latency_ms": result["latency_ms"],
-                "cached_tokens": 1, "decision": "cache", "cache_type": "exact",
+                "category": "security", "status": "blocked", "agent_id": "execution_gateway",
+                "name": "cache_integrity", "latency_ms": round((time.monotonic() - t0) * 1000, 1),
+                "reason": "exact_cache_signature_mismatch",
             })
-            return result
 
     if semantic_cache_cfg["enabled"]:
         semantic_hit = semantic_cache.lookup(
@@ -294,7 +307,8 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
             cacheable = dict(result)
             cacheable.pop("cache_hit", None)
             cacheable.pop("latency_ms", None)
-            _redis_client.setex(cache_key, exact_cache_cfg["ttl_seconds"], json.dumps(cacheable))
+            envelope = {"payload": cacheable, "signature": cache_integrity.sign(cacheable)}
+            _redis_client.setex(cache_key, exact_cache_cfg["ttl_seconds"], json.dumps(envelope))
         except Exception:
             pass
 

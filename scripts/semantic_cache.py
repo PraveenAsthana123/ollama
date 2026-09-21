@@ -29,14 +29,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import time
 import urllib.error
 import urllib.request
 import uuid
+from pathlib import Path
 from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams, FieldCondition, Filter, MatchValue
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cache_integrity  # noqa: E402
 
 OLLAMA_URL = "http://127.0.0.1:11434"
 EMBED_MODEL = "nomic-embed-text"
@@ -101,8 +106,12 @@ def lookup(query: str, kind: str, threshold: float, ttl_seconds: int) -> dict[st
         payload = hits[0].payload
         if now - payload.get("stored_at", 0) > ttl_seconds:
             return None  # expired -- treat as a miss rather than deleting mid-lookup
-        return {"response": payload["response"], "model": payload["model"], "tier": payload["tier"],
-                "similarity": round(hits[0].score, 4)}
+        signed = {"response": payload["response"], "model": payload["model"], "tier": payload["tier"]}
+        if not cache_integrity.verify(signed, payload.get("signature", "")):
+            # Tampered point -- a direct Qdrant edit would land here. Never
+            # served; treated as a real miss so inference still runs.
+            return None
+        return {**signed, "similarity": round(hits[0].score, 4)}
     except Exception:
         return None
 
@@ -113,9 +122,11 @@ def store(query: str, kind: str, response: str, model: str, tier: str) -> None:
     try:
         client = _get_client()
         vector = _embed(query)
+        signature = cache_integrity.sign({"response": response, "model": model, "tier": tier})
         client.upsert(collection_name=COLLECTION, points=[PointStruct(
             id=_point_id(kind, query), vector=vector,
-            payload={"kind": kind, "response": response, "model": model, "tier": tier, "stored_at": time.time()},
+            payload={"kind": kind, "response": response, "model": model, "tier": tier,
+                     "stored_at": time.time(), "signature": signature},
         )])
     except Exception:
         pass

@@ -42,6 +42,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import inference_router  # noqa: E402
+import gpu_scheduler  # noqa: E402
 from agent_monitor import EventStore  # noqa: E402
 
 try:
@@ -90,7 +91,7 @@ def _ollama_generate(endpoint: str, model: str, query: str, keep_alive: str, tim
         return json.loads(resp.read().decode())
 
 
-def execute(query: str, kind: str = "prose", context: str = "") -> dict[str, Any]:
+def execute(query: str, kind: str = "prose", context: str = "", priority: int = 0) -> dict[str, Any]:
     inference_config = yaml.safe_load(INFERENCE_CONFIG.read_text())
     token_config = yaml.safe_load(TOKEN_TOWER_CONFIG.read_text())
     exact_cache_cfg = token_config["pipeline"]["exact_cache"]
@@ -157,20 +158,44 @@ def execute(query: str, kind: str = "prose", context: str = "") -> dict[str, Any
         return result
 
     try:
-        response = _ollama_generate(endpoint, plan["model"], query, keep_alive)
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+        gpu_client = gpu_scheduler._client()
+    except Exception:
+        gpu_client = None  # scheduler is additive: Redis being down must not block inference
+
+    def _fail(reason: str) -> dict:
         latency_ms = round((time.monotonic() - t0) * 1000, 1)
         store.append({
             "category": "model", "status": "failed", "agent_id": "execution_gateway",
-            "name": plan["model"], "latency_ms": latency_ms, "reason": f"{type(exc).__name__}: {exc}",
+            "name": plan["model"], "latency_ms": latency_ms, "reason": reason,
         })
-        return {"cache_hit": False, "decision": "error", "reason": str(exc), "plan": plan, "latency_ms": latency_ms}
+        return {"cache_hit": False, "decision": "error", "reason": reason, "plan": plan, "latency_ms": latency_ms}
+
+    if gpu_client is not None:
+        try:
+            lease_cm = gpu_scheduler.acquire(priority, timeout=120, client=gpu_client)
+            lease = lease_cm.__enter__()
+        except TimeoutError as exc:
+            return _fail(f"gpu_lease_timeout: {exc}")
+    else:
+        lease_cm = None
+        lease = {"wait_ms": 0.0, "priority_name": "unscheduled"}
+
+    try:
+        response = _ollama_generate(endpoint, plan["model"], query, keep_alive)
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as exc:
+        if lease_cm is not None:
+            lease_cm.__exit__(type(exc), exc, exc.__traceback__)
+        return _fail(f"{type(exc).__name__}: {exc}")
+    else:
+        if lease_cm is not None:
+            lease_cm.__exit__(None, None, None)
 
     latency_ms = round((time.monotonic() - t0) * 1000, 1)
     result = {
         "cache_hit": False, "decision": "inference", "provider": plan["provider"],
         "model": plan["model"], "tier": plan["tier"], "stages": plan["stages"],
         "response": response.get("response", ""), "latency_ms": latency_ms,
+        "gpu_wait_ms": lease["wait_ms"], "gpu_priority": lease["priority_name"],
     }
 
     if exact_cache_cfg["enabled"] and _redis_client:
@@ -195,8 +220,10 @@ def main() -> None:
     parser.add_argument("query")
     parser.add_argument("--kind", default="prose")
     parser.add_argument("--context", default="")
+    parser.add_argument("--priority", type=int, default=0, choices=list(gpu_scheduler.PRIORITY_NAMES),
+                         help="0=interactive 1=coding 2=embedding 3=image 4=video 5=batch")
     args = parser.parse_args()
-    print(json.dumps(execute(args.query, args.kind, args.context), indent=2, sort_keys=True))
+    print(json.dumps(execute(args.query, args.kind, args.context, args.priority), indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

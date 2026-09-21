@@ -1,0 +1,9 @@
+diff --git a/app/idle_monitor.py b/app/idle_monitor.py
+index 361dd05..3862458 100644
+--- a/app/idle_monitor.py
++++ b/app/idle_monitor.py
+@@ -21,3 +21,4 @@ IDLE_MINUTES = float(os.environ.get("IDLE_MINUTES", "10"))
+ IDLE_BIG_MINUTES = float(os.environ.get("IDLE_BIG_MINUTES", "4"))
+ IDLE_BIG_GB = float(os.environ.get("IDLE_BIG_GB", "8"))
+ PROTECTED = {os.environ.get("OLL_FAST_MODEL", "llama3.1:8b"), "llama3.2:3b"}
++PROTECTED.update(model.strip() for model in os.environ.get("OLL_PROTECTED_MODELS", "").split(",") if model.strip())

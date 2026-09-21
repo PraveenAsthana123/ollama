@@ -3,7 +3,7 @@ Description=Refresh Ollama warm-model residency
 
 [Timer]
 OnBootSec=45s
-OnUnitActiveSec=20m
+OnUnitActiveSec=5m
 AccuracySec=30s
 Persistent=true
 

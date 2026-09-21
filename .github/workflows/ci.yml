@@ -96,7 +96,7 @@ jobs:
       - name: Install semgrep
         run: pip install semgrep
       - name: Run semgrep (Python security + correctness rules)
-        run: semgrep --config p/python --config p/security-audit --error --quiet scripts/
+        run: semgrep --config p/python --config p/security-audit --error --quiet scripts/ portal/
 
   sbom:
     runs-on: ubuntu-latest

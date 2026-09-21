@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -50,6 +51,15 @@ EMBED_DIM = 768  # nomic-embed-text's real output dimension, verified against a 
 QDRANT_HOST = "127.0.0.1"
 QDRANT_PORT = 6333
 COLLECTION = "execution_gateway_semantic_cache"
+
+
+def _identity_tokens(text: str) -> list[str]:
+    """Numbers and digit-bearing identifiers must match before reuse."""
+    return sorted(re.findall(r"\b[\w.-]*\d[\w.-]*\b", text.casefold()))
+
+
+def _identity_hash(text: str) -> str:
+    return hashlib.sha256(json.dumps(_identity_tokens(text)).encode("utf-8")).hexdigest()
 
 _client: QdrantClient | None = None
 
@@ -104,9 +114,13 @@ def lookup(query: str, kind: str, threshold: float, ttl_seconds: int) -> dict[st
         if not hits:
             return None
         payload = hits[0].payload
+        identity_hash = payload.get("identity_hash")
+        if not identity_hash or _identity_hash(query) != identity_hash:
+            return None  # old unsigned-query entries or distinct numbers/IDs
         if now - payload.get("stored_at", 0) > ttl_seconds:
             return None  # expired -- treat as a miss rather than deleting mid-lookup
-        signed = {"response": payload["response"], "model": payload["model"], "tier": payload["tier"]}
+        signed = {"identity_hash": identity_hash, "response": payload["response"],
+                  "model": payload["model"], "tier": payload["tier"]}
         if not cache_integrity.verify(signed, payload.get("signature", "")):
             # Tampered point -- a direct Qdrant edit would land here. Never
             # served; treated as a real miss so inference still runs.
@@ -122,10 +136,12 @@ def store(query: str, kind: str, response: str, model: str, tier: str) -> None:
     try:
         client = _get_client()
         vector = _embed(query)
-        signature = cache_integrity.sign({"response": response, "model": model, "tier": tier})
+        identity_hash = _identity_hash(query)
+        signature = cache_integrity.sign({"identity_hash": identity_hash, "response": response,
+                                          "model": model, "tier": tier})
         client.upsert(collection_name=COLLECTION, points=[PointStruct(
             id=_point_id(kind, query), vector=vector,
-            payload={"kind": kind, "response": response, "model": model, "tier": tier,
+            payload={"kind": kind, "identity_hash": identity_hash, "response": response, "model": model, "tier": tier,
                      "stored_at": time.time(), "signature": signature},
         )])
     except Exception:

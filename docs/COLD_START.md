@@ -2,10 +2,15 @@
 
 Cold starts have two costs: CUDA runtime initialization and model loading.
 Changing model families can also evict a resident model. The tower addresses
-this with a persistent user service, a 30-minute keep-alive, two resident model
-slots, and a timer that concurrently refreshes the fast and code models every
-20 minutes. Concurrent reservation is intentional: it makes the scheduler hold
-both configured slots rather than viewing the second refresh as replacement work.
+this with a persistent user service, a 30-minute keep-alive, four resident
+model slots on this shared host, and a timer that concurrently refreshes the
+fast and code models every 5 minutes. Other slots serve semantic-cache
+embeddings and the shared SohamYoga chat model when used.
+
+The SohamYoga watchdog shares this Ollama daemon and previously unloaded the
+prewarmed models every minute. Its `OLL_PROTECTED_MODELS` service override now
+protects them; see `docs/PORTAL_OPERATIONS.md`. Check that override as well as
+the prewarm timer when residency unexpectedly drops.
 
 Check current residency:
 

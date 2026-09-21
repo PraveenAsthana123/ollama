@@ -21,7 +21,11 @@ from __future__ import annotations
 
 import argparse
 import html
+import hmac
 import json
+import os
+import secrets
+import shlex
 import subprocess
 import sys
 import urllib.request
@@ -42,7 +46,7 @@ EVENTS_LOG = Path.home() / ".local/state/ollama-control-tower/monitor/events.jso
 # pre-existing subprocess calls (model_residency.py, bench_production_models.py)
 # are stdlib-only.
 CONTROL_TOWER_PYTHON = "/home/praveen/venv-ardupilot/bin/python3"
-ZAP_REPORT = Path("/mnt/deepa/chatgpt/security-tools/zap-reports/job-portal-prototype-baseline.json")
+ZAP_REPORT = CONTROL_TOWER / "reports/zap-portal-baseline.json"
 
 BASE_CSS = """
   body { font-family: -apple-system, Segoe UI, Arial, sans-serif; margin: 0; color: #1a1a1a; background: #f7f7f8; }
@@ -64,11 +68,74 @@ BASE_CSS = """
   button, .btn { background: #1a5fb4; color: #fff; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; text-decoration: none; display: inline-block; }
   .fail { color: #a01818; }
 """
+CSRF_TOKEN = secrets.token_urlsafe(32)
+
+TERMINAL_COMMANDS = {
+    "help": None,
+    "status": ["scripts/control-tower", "status"],
+    "residency": ["python3", "scripts/model_residency.py"],
+    "tokens": ["scripts/control-tower", "tokens"],
+    "fleet": ["scripts/control-tower", "fleet"],
+    "agentops": ["scripts/control-tower", "agentops", "gate"],
+    "diagnose": ["python3", "scripts/diagnose_stack.py"],
+    "delegations": ["scripts/control-tower", "delegate", "report"],
+}
+
+
+def terminal_command(command: str) -> str:
+    """A read-only operations console, never a general-purpose shell."""
+    argv = shlex.split(command)
+    if len(argv) != 1 or argv[0] not in TERMINAL_COMMANDS:
+        return "Unknown command. Type help to list supported operations."
+    if argv[0] == "help":
+        return "Available commands: " + ", ".join(TERMINAL_COMMANDS)
+    cmd = TERMINAL_COMMANDS[argv[0]]
+    full_cmd = [CONTROL_TOWER_PYTHON, *cmd[1:]] if cmd[0] == "python3" else cmd
+    completed = subprocess.run(full_cmd, capture_output=True, text=True, cwd=CONTROL_TOWER, timeout=30)
+    return (completed.stdout or completed.stderr or f"Exit status {completed.returncode}")[:20000]
+
+
+def prepare_task(query: str, task_type: str, route: str) -> tuple[str, str]:
+    if task_type not in {"text", "code", "job"} or route not in {"direct", "claude"}:
+        raise ValueError("Unsupported task type or route")
+    if not query or len(query) > 12000:
+        raise ValueError("Prompt must contain 1–12000 characters")
+    kind = "source" if task_type == "code" else "prose"
+    prompt = query
+    if task_type == "job":
+        prompt = "Complete this bounded job. State the result and any assumptions clearly.\n\n" + query
+    if route == "claude":
+        instruction = (
+            "Rewrite the following request as a concise, self-contained task for a local Ollama model. "
+            "Preserve requirements and output format. Return only the rewritten task, with no preamble. "
+            "Do not execute the task.\n\nRequest:\n" + prompt
+        )
+        completed = subprocess.run(
+            ["claude", "-p", instruction, "--max-turns", "1"],
+            capture_output=True, text=True, cwd=CONTROL_TOWER, timeout=90,
+            env={**os.environ, "PATH": f"/home/praveen/.local/bin:{os.environ.get('PATH', '')}"},
+        )
+        if completed.returncode != 0 or not completed.stdout.strip():
+            raise RuntimeError("Claude prompt preparation failed; use Direct Ollama or inspect the Claude CLI")
+        prompt = completed.stdout.strip()[:16000]
+    return prompt, kind
 
 
 def run_json(cmd: list[str]) -> dict:
     full_cmd = [CONTROL_TOWER_PYTHON, *cmd[1:]] if cmd[0] == "python3" else cmd
-    result = subprocess.run(full_cmd, capture_output=True, text=True, cwd=CONTROL_TOWER, timeout=180)
+    env = os.environ.copy()
+    if "scripts/execution_gateway.py" in cmd or "scripts/delegate.py" in cmd:
+        token_path = Path.home() / ".local/state/ollama-control-tower/gateway.token"
+        if not token_path.exists():
+            token_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                fd = os.open(token_path, os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0o600)
+                with os.fdopen(fd, "w") as token_file:
+                    token_file.write(secrets.token_urlsafe(32))
+            except FileExistsError:
+                pass
+        env["EXECUTION_GATEWAY_TOKEN"] = token_path.read_text().strip()
+    result = subprocess.run(full_cmd, capture_output=True, text=True, cwd=CONTROL_TOWER, timeout=180, env=env)
     return json.loads(result.stdout) if result.stdout.strip() else {"error": result.stderr}
 
 
@@ -94,7 +161,7 @@ def health_status() -> dict:
         ("litellm", "http://127.0.0.1:4400/health/liveliness"),
     ):
         try:
-            with urllib.request.urlopen(url, timeout=2) as response:
+            with urllib.request.urlopen(url, timeout=2) as response:  # nosemgrep: dynamic-urllib-use-detected -- URLs are the two fixed loopback literals above, never user input
                 services[name] = {"ok": response.status == 200, "http_status": response.status}
         except Exception as exc:
             services[name] = {"ok": False, "error": type(exc).__name__}
@@ -143,12 +210,16 @@ def dashboard_page() -> str:
     <table><tr><th>Time (UTC)</th><th>Agent</th><th>Model</th><th>Status</th><th>Latency</th></tr>{event_rows}</table>
 
     <h3>Benchmark</h3>
-    <p><a class="btn" href="/benchmark">Run real benchmark now (~70s, hits gemma2:9b + nomic-embed-text for real)</a></p>
+    <form method="post" action="/benchmark"><input type="hidden" name="csrf" value="{CSRF_TOKEN}">
+      <button type="submit">Run real benchmark now (~70s, loads production models)</button></form>
 
     <h3>Execution gateway</h3>
     <p><a class="btn" href="/api/health">Live health</a> &nbsp;
+       <a class="btn" href="/diagnostics">Diagnostics / drift</a> &nbsp;
        <a class="btn" href="/gpu">GPU lease/queue status</a> &nbsp;
-       <a class="btn" href="/run">Run a live query through the real execution gateway</a> &nbsp;
+       <a class="btn" href="/run">Prompt terminal</a> &nbsp;
+       <a class="btn" href="/terminal">Operations terminal</a> &nbsp;
+       <a class="btn" href="/capabilities">Capability map</a> &nbsp;
        <a class="btn" href="/security">Security layers (SAST/SBOM/DAST/runtime, in sequence)</a></p>
     """)
 
@@ -181,7 +252,7 @@ def gpu_page() -> str:
 def security_page() -> str:
     # Layer 1: SAST -- live re-run, same as the real CI gate
     semgrep = subprocess.run(
-        ["semgrep", "--config", "p/python", "--config", "p/security-audit", "--json", "--quiet", "scripts/"],
+        ["semgrep", "--config", "p/python", "--config", "p/security-audit", "--json", "--quiet", "scripts/", "portal/"],
         capture_output=True, text=True, cwd=CONTROL_TOWER, timeout=120,
     )
     try:
@@ -243,9 +314,7 @@ def security_page() -> str:
     ) or "<tr><td colspan='4'>No security-category events logged yet</td></tr>"
 
     return layout("Security layers (in sequence)", f"""
-    <p class="note">Each layer below is real -- live tool output or the actual event log, nothing
-    fabricated for display. See <code>docs/STRIDE_THREAT_MODEL.md</code> for the full threat model
-    behind these controls.</p>
+    <p class="note">SAST and runtime events are live. SBOM/SCA are CI artifacts. DAST is shown only if this portal has its own scan report. See <code>docs/STRIDE_THREAT_MODEL.md</code>.</p>
 
     <h3>1. SAST -- static analysis (semgrep, live re-run)</h3>
     <div class="kpi-row">{sast_html}</div>
@@ -264,7 +333,8 @@ def security_page() -> str:
     """)
 
 
-def run_form(query: str = "", kind: str = "prose", result: dict | None = None) -> str:
+def run_form(query: str = "", task_type: str = "text", route: str = "direct",
+             result: dict | None = None, prepared_prompt: str = "") -> str:
     result_html = ""
     if result is not None:
         cache_badge = ""
@@ -283,20 +353,95 @@ def run_form(query: str = "", kind: str = "prose", result: dict | None = None) -
         </table>
         <h3>Response</h3>
         <pre style="white-space:pre-wrap;background:#fff;border:1px solid #e2e2e6;border-radius:8px;padding:1rem;">{html.escape(str(result.get('response', result.get('reason', ''))))}</pre>
+        {f'<details><summary>Prompt sent to Ollama</summary><pre>{html.escape(prepared_prompt)}</pre></details>' if prepared_prompt else ''}
         """
-    return layout("Run a live query", f"""
-    <p class="note">Submits a real request through execution_gateway.py -- real Redis exact-cache check, real
-    Qdrant semantic-cache check, real GPU lease, real Ollama call on a miss. Nothing here is simulated.</p>
+    return layout("Prompt terminal", f"""
+    <p class="note">Submits a tracked task through delegate.py and the real execution gateway -- Redis exact-cache check,
+    Qdrant semantic-cache check, real GPU lease, real Ollama call on a miss. Claude preparation calls the Claude CLI first; direct mode stays local.</p>
     <form method="post" action="/run">
-      <p><textarea name="query" rows="3" style="width:100%;font-size:0.95rem;" placeholder="Ask something...">{html.escape(query)}</textarea></p>
-      <p>Kind: <select name="kind">
-        <option value="prose" {"selected" if kind=="prose" else ""}>prose</option>
-        <option value="source" {"selected" if kind=="source" else ""}>source</option>
+      <input type="hidden" name="csrf" value="{CSRF_TOKEN}">
+      <p><textarea name="query" rows="5" maxlength="12000" style="width:100%;font-size:0.95rem;" placeholder="Describe the job, code, or text task...">{html.escape(query)}</textarea></p>
+      <p>Task: <select name="task_type">
+        <option value="text" {"selected" if task_type=="text" else ""}>Text</option>
+        <option value="code" {"selected" if task_type=="code" else ""}>Code</option>
+        <option value="job" {"selected" if task_type=="job" else ""}>Job</option>
+      </select> Route: <select name="route">
+        <option value="direct" {"selected" if route=="direct" else ""}>Direct Ollama</option>
+        <option value="claude" {"selected" if route=="claude" else ""}>Claude prepares → Ollama executes</option>
       </select>
       <button type="submit">Run</button></p>
     </form>
     {result_html}
     <p><a href="/">&larr; Back to dashboard</a></p>
+    """)
+
+
+def terminal_page(command: str = "", output: str = "") -> str:
+    return layout("Operations terminal", f"""
+    <p class="note">Read-only Control Tower commands. No shell, arbitrary commands, file edits, or deployments.</p>
+    <form method="post" action="/terminal">
+      <input type="hidden" name="csrf" value="{CSRF_TOKEN}">
+      <p><input name="command" value="{html.escape(command)}" style="width:80%;font-size:1rem" placeholder="help, status, residency, tokens, fleet, agentops, diagnose, delegations" maxlength="80">
+      <button type="submit">Run</button></p>
+    </form>
+    <pre style="white-space:pre-wrap;background:#fff;padding:1rem">{html.escape(output)}</pre>
+    <p><a href="/run">Prompt terminal</a> · <a href="/">Dashboard</a></p>
+    """)
+
+
+def diagnostics_page() -> str:
+    state = run_json(["python3", "scripts/diagnose_stack.py"])
+    fleet = run_json(["scripts/control-tower", "fleet"])
+    agentops = run_json(["scripts/control-tower", "agentops", "gate"])
+    tokens = run_json(["scripts/control-tower", "tokens"])
+    rows = "".join(f"<tr><td>{html.escape(name)}</td><td>{html.escape(status)}</td></tr>"
+                   for name, status in state.get("units", {}).items())
+    problems = "".join(f"<li>{html.escape(problem)}</li>" for problem in state.get("problems", []))
+    return layout("Diagnostics and drift", f"""
+    <p class="note">Live read-only checks. Events are the most recent 200; this is an operations view, not a quality evaluation.</p>
+    <div class="kpi-row">
+      {kpi(state.get('installed_models', '?'), 'Installed models')}
+      {kpi(len(state.get('resident_models', [])), 'Resident models')}
+      {kpi(state.get('recent_events', '?'), 'Recent events')}
+      {kpi(fleet.get('totals', {}).get('agents', '?'), 'Active agents')}
+      {kpi(tokens.get('input_tokens', '?'), 'Measured input tokens')}
+    </div>
+    <h3>Services</h3><table><tr><th>Unit</th><th>State</th></tr>{rows}</table>
+    <h3>Problems</h3><ul>{problems or '<li>No problem detected by these checks</li>'}</ul>
+    <h3>AgentOps quality gate</h3>
+    <p>{'PASS' if agentops.get('passed') else 'FAIL'} — {html.escape(', '.join(agentops.get('failures', [])) or 'No failing gates')}</p>
+    <p>Recorded sessions: {agentops.get('sessions', '?')}; measured cache hits: {tokens.get('cached_tokens', '?')} tokens.</p>
+    <h3>Known implementation gaps</h3>
+    <ul><li>Claude delegation from the CLI is instructed, not enforced by a hook.</li>
+    <li>Agent supervision, creation, and self-healing modules need task-specific live evaluations.</li>
+    <li>Prompt compression and KV-cache adapters remain disabled pending benchmarks.</li>
+    <li>Semantic-cache quality needs recurring tests with isolated state.</li></ul>
+    <p><a href="/terminal">Operations terminal</a> · <a href="/">Dashboard</a></p>
+    """)
+
+
+def capabilities_page() -> str:
+    features = [
+        ("Prompt routing", "Live", "Portal direct and Claude-prepared requests execute through delegate.py"),
+        ("Task reporting", "Live", "Delegation records in operations terminal: delegations"),
+        ("Agent supervisor / harness", "Implemented", "Supervisor and harness CLIs; no active fleet agents in latest audit"),
+        ("Exact / semantic cache", "Live", "Redis and Qdrant; identity-sensitive matches are rejected"),
+        ("Token limits", "Live", "Ollama num_ctx and num_predict; native input accounting remains open"),
+        ("MCP gateway / mesh", "Shared runtime", "SohamYoga ContextForge container is healthy on host; no Control Tower integration verified"),
+        ("Tracing / evaluation", "Partial", "Local events exist; AgentOps quality gate currently fails"),
+        ("SAST", "Live/CI", "Semgrep locally and in GitHub Actions"),
+        ("SBOM / SCA", "CI", "Syft CycloneDX artifact and Grype scan"),
+        ("DAST / API security", "Gap", "No current portal-specific ZAP baseline report"),
+        ("CBOM", "Gap", "Cryptographic inventory not generated"),
+        ("SIEM / EDR / XDR / SOAR", "Gap", "No Wazuh or equivalent deployment verified"),
+    ]
+    rows = "".join(f"<tr><td>{html.escape(name)}</td><td>{html.escape(status)}</td><td>{html.escape(evidence)}</td></tr>"
+                   for name, status, evidence in features)
+    return layout("Capability map", f"""
+    <p class="note">Status is scoped to this Ollama project. Implemented code is distinguished from a running production integration.</p>
+    <table><tr><th>Function</th><th>Status</th><th>Evidence / gap</th></tr>{rows}</table>
+    <p>See <code>docs/OPERATIONS_GAP_CHECKLIST.md</code> and <code>docs/GITHUB_FEATURE_REVIEW.md</code> for the audit and candidate projects.</p>
+    <p><a href="/diagnostics">Live diagnostics</a> · <a href="/">Dashboard</a></p>
     """)
 
 
@@ -345,11 +490,17 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/" or path == "/dashboard":
                 page = dashboard_page()
             elif path == "/benchmark":
-                page = benchmark_page()
+                page = layout("Benchmark", "<p>Run the benchmark from the dashboard to confirm this expensive model test.</p>")
             elif path == "/gpu":
                 page = gpu_page()
             elif path == "/run":
                 page = run_form()
+            elif path == "/terminal":
+                page = terminal_page()
+            elif path == "/diagnostics":
+                page = diagnostics_page()
+            elif path == "/capabilities":
+                page = capabilities_page()
             elif path == "/security":
                 page = security_page()
             else:
@@ -365,22 +516,46 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         path = urlparse(self.path).path
-        if path != "/run":
+        if path not in {"/run", "/terminal", "/benchmark"}:
             self.send_response(404)
             self.end_headers()
             return
         length = int(self.headers.get("Content-Length", 0))
+        if length > 16000:
+            self.send_error(413, "Request too large")
+            return
         fields = parse_qs(self.rfile.read(length).decode("utf-8"))
+        if not hmac.compare_digest(fields.get("csrf", [""])[0], CSRF_TOKEN):
+            self.send_error(403, "Invalid form token")
+            return
+        if path == "/benchmark":
+            page = benchmark_page()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(page.encode("utf-8"))
+            return
+        if path == "/terminal":
+            command = fields.get("command", [""])[0].strip()
+            try:
+                page = terminal_page(command, terminal_command(command))
+            except Exception as exc:
+                page = terminal_page(command, f"Error: {type(exc).__name__}")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(page.encode("utf-8"))
+            return
         query = (fields.get("query", [""])[0]).strip()
-        kind = fields.get("kind", ["prose"])[0]
+        task_type = fields.get("task_type", ["text"])[0]
+        route = fields.get("route", ["direct"])[0]
         try:
-            if not query:
-                page = run_form(query, kind, {"decision": "error", "reason": "empty query"})
-            else:
-                result = run_json(["python3", "scripts/execution_gateway.py", query, "--kind", kind])
-                page = run_form(query, kind, result)
+            prompt, kind = prepare_task(query, task_type, route)
+            result = run_json(["python3", "scripts/delegate.py", "run", f"Portal {task_type} request",
+                               prompt, "--kind", kind])
+            page = run_form(query, task_type, route, result, prompt)
         except Exception as exc:
-            page = layout("Error", f"<p class='fail'>{html.escape(str(exc))}</p>")
+            page = run_form(query, task_type, route, {"decision": "error", "reason": str(exc)})
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()

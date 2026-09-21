@@ -170,3 +170,5 @@ Business roles and cross-functional workflows are defined separately in
 the responsible role; this control plane applies runtime state and safety policy.
 Fleet telemetry, alert thresholds, and optional observability exporters are
 defined in [the Agent Monitoring Tower](AGENT_MONITORING.md).
+Runtime permissions, isolation, checkpoints, verification, and evidence gates
+are defined in [the Agent Harness Manager](AGENT_HARNESS.md).

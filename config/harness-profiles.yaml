@@ -1,0 +1,47 @@
+version: 1
+defaults:
+  isolation: worktree
+  network: deny
+  token_limit: 30000
+  step_limit: 50
+  timeout_seconds: 1800
+  retries: 2
+  checkpoint_every_steps: 10
+  require_evidence: [change_summary, checks, diff]
+  instructions: [AGENTS.md]
+  memory: session
+  mcp: []
+  tools: []
+  approvals: [external_write, destructive_action, credential_use]
+
+profiles:
+  coding:
+    tools: [git.read, git.write, filesystem.read, filesystem.write, shell, tests]
+    mcp: [filesystem, github, terminal]
+    network: review
+    require_evidence: [change_summary, checks, diff, test_results]
+  security:
+    tools: [git.read, filesystem.read, scanners]
+    mcp: [filesystem]
+    network: deny
+    require_evidence: [threat_model, findings, reproduction, remediation]
+  qa:
+    tools: [filesystem.read, tests, playwright, http]
+    mcp: [filesystem, browser]
+    network: review
+    require_evidence: [test_plan, test_results, failures]
+  data:
+    tools: [filesystem.read, filesystem.write, sql.read, pipeline.test]
+    mcp: [filesystem, database]
+    network: deny
+    require_evidence: [data_contract, validation_results, lineage]
+  production:
+    tools: [git.read, deploy.plan, observability.read]
+    mcp: [github]
+    network: review
+    approvals: [production_deployment, external_write, credential_use]
+    require_evidence: [release_plan, checks, rollback_plan, approval]
+
+forbidden_tools: [sandbox.disable, credential.export]
+workspace_root: ~/.local/share/ollama-control-tower/workspaces
+run_state_root: ~/.local/state/ollama-control-tower/harness-runs

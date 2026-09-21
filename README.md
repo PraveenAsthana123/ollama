@@ -38,6 +38,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 [the agent control tower](docs/AGENT_CONTROL_TOWER.md),
 [the business agent map](docs/BUSINESS_AGENT_MAP.md),
 [the agent monitoring tower](docs/AGENT_MONITORING.md),
+[the agent harness manager](docs/AGENT_HARNESS.md),
 [the token-efficiency pipeline](docs/TOKEN_EFFICIENCY_PIPELINE.md),
 [cold-start operations](docs/COLD_START.md), and
 [the audit summary](reports/model-audit-summary.json).
@@ -48,6 +49,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/agent_control.py` — persistent agent states, budgets, approvals, and operator controls.
 - `scripts/business_registry.py` — validates and queries business roles and workflows.
 - `scripts/agent_monitor.py` — private event ledger, fleet KPIs, and alert decisions.
+- `scripts/harness_manager.py` — resolves runtime profiles and evidence-gated runs.
 - `scripts/warm_models.py` — idempotent prewarm request for fast/code models.
 - `scripts/audit_models.py` — bounded sequential model validation.
 - `scripts/token_router.py` — budget, pruning, route, and exact-cache-key preparation.
@@ -55,6 +57,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `config/agent-control.yaml` — trust, tool, MCP, retry, loop, and budget policy.
 - `config/business-agent-registry.yaml` — domains, supervisors, roles, skills, tools, and approval gates.
 - `config/agent-monitoring.yaml` — telemetry dimensions, thresholds, privacy, and optional exporters.
+- `config/harness-profiles.yaml` — coding, security, QA, data, and production harness policy.
 - `config/litellm.yaml` — measured fast/code/strong aliases.
 - `config/freellmapi.config.json` — local provider definition for FreeLLMAPI.
 - `systemd/` — persistent CUDA server, prewarm timer, and legacy-port proxy.

@@ -43,6 +43,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import inference_router  # noqa: E402
 import gpu_scheduler  # noqa: E402
+import semantic_cache  # noqa: E402
 from agent_monitor import EventStore  # noqa: E402
 
 try:
@@ -108,6 +109,7 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
     inference_config = yaml.safe_load(INFERENCE_CONFIG.read_text())
     token_config = yaml.safe_load(TOKEN_TOWER_CONFIG.read_text())
     exact_cache_cfg = token_config["pipeline"]["exact_cache"]
+    semantic_cache_cfg = token_config["pipeline"]["semantic_cache"]
     keep_alive = token_config["defaults"]["keep_alive"]
     store = EventStore(EVENTS_PATH)
 
@@ -122,11 +124,32 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
         if cached:
             result = json.loads(cached)
             result["cache_hit"] = True
+            result["cache_type"] = "exact"
             result["latency_ms"] = round((time.monotonic() - t0) * 1000, 1)
             store.append({
                 "category": "model", "status": "completed", "agent_id": "execution_gateway",
                 "name": result.get("model", "cache"), "latency_ms": result["latency_ms"],
-                "cached_tokens": 1, "decision": "cache",
+                "cached_tokens": 1, "decision": "cache", "cache_type": "exact",
+            })
+            return result
+
+    if semantic_cache_cfg["enabled"]:
+        semantic_hit = semantic_cache.lookup(
+            query, kind, semantic_cache_cfg["similarity_threshold"], semantic_cache_cfg["ttl_seconds"],
+        )
+        if semantic_hit is not None:
+            latency_ms = round((time.monotonic() - t0) * 1000, 1)
+            result = {
+                "cache_hit": True, "cache_type": "semantic", "decision": "inference",
+                "provider": "direct_ollama", "model": semantic_hit["model"], "tier": semantic_hit["tier"],
+                "response": semantic_hit["response"], "similarity": semantic_hit["similarity"],
+                "latency_ms": latency_ms,
+            }
+            store.append({
+                "category": "model", "status": "completed", "agent_id": "execution_gateway",
+                "name": semantic_hit["model"], "latency_ms": latency_ms,
+                "cached_tokens": 1, "decision": "cache", "cache_type": "semantic",
+                "similarity": semantic_hit["similarity"],
             })
             return result
 
@@ -219,6 +242,9 @@ def execute(query: str, kind: str = "prose", context: str = "", priority: int = 
             _redis_client.setex(cache_key, exact_cache_cfg["ttl_seconds"], json.dumps(cacheable))
         except Exception:
             pass
+
+    if semantic_cache_cfg["enabled"]:
+        semantic_cache.store(query, kind, result["response"], plan["model"], plan["tier"])
 
     store.append({
         "category": "model", "status": "completed", "agent_id": "execution_gateway",

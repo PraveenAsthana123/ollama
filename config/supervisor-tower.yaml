@@ -1,0 +1,44 @@
+version: 1
+hierarchy:
+  Global Supervisor:
+    - Engineering Supervisor
+    - AI Supervisor
+    - Operations Supervisor
+  Engineering Supervisor: [Architect Agent, Developer Agent, QA Agent]
+  AI Supervisor: [RAG Agent, ML Agent, Evaluation Agent]
+  Operations Supervisor: [DevOps Agent, SOC Agent, FinOps Agent]
+
+limits:
+  max_steps: 60
+  max_depth: 4
+  max_tokens: 50000
+  max_cost_usd: 2.00
+  max_retries_per_task: 2
+  max_handoffs: 20
+  max_parallel: 4
+  no_progress_steps: 3
+  timeout_seconds: 3600
+
+workflow:
+  require_structured_plan: true
+  require_acyclic_dependencies: true
+  deterministic_aggregation: true
+  reviewer_required: true
+  human_approval_for: [production_deployment, destructive_action, external_message]
+  shared_state: blackboard
+  finish_when: [all_tasks_completed, reviewer_accepted, approvals_satisfied]
+
+routing:
+  Architecture Agent: {harness: coding, model: strong}
+  Architect Agent: {harness: coding, model: strong}
+  Developer Agent: {harness: coding, model: code}
+  QA Agent: {harness: qa, model: code}
+  Security Agent: {harness: security, model: strong}
+  SOC Agent: {harness: security, model: code}
+  Data Engineer Agent: {harness: data, model: code}
+  RAG Agent: {harness: data, model: code}
+  ML Agent: {harness: data, model: strong}
+  Evaluation Agent: {harness: qa, model: code}
+  DevOps Agent: {harness: production, model: code}
+  FinOps Agent: {harness: data, model: fast}
+  Reviewer Agent: {harness: qa, model: strong}

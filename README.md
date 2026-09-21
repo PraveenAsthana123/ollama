@@ -39,6 +39,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 [the business agent map](docs/BUSINESS_AGENT_MAP.md),
 [the agent monitoring tower](docs/AGENT_MONITORING.md),
 [the agent harness manager](docs/AGENT_HARNESS.md),
+[the supervisor tower](docs/SUPERVISOR_TOWER.md),
 [the token-efficiency pipeline](docs/TOKEN_EFFICIENCY_PIPELINE.md),
 [cold-start operations](docs/COLD_START.md), and
 [the audit summary](reports/model-audit-summary.json).
@@ -50,6 +51,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `scripts/business_registry.py` — validates and queries business roles and workflows.
 - `scripts/agent_monitor.py` — private event ledger, fleet KPIs, and alert decisions.
 - `scripts/harness_manager.py` — resolves runtime profiles and evidence-gated runs.
+- `scripts/supervisor.py` — bounded DAG scheduling, routing, blackboard, retries, and review.
 - `scripts/warm_models.py` — idempotent prewarm request for fast/code models.
 - `scripts/audit_models.py` — bounded sequential model validation.
 - `scripts/token_router.py` — budget, pruning, route, and exact-cache-key preparation.
@@ -58,6 +60,7 @@ See [the runtime architecture](docs/ARCHITECTURE.md),
 - `config/business-agent-registry.yaml` — domains, supervisors, roles, skills, tools, and approval gates.
 - `config/agent-monitoring.yaml` — telemetry dimensions, thresholds, privacy, and optional exporters.
 - `config/harness-profiles.yaml` — coding, security, QA, data, and production harness policy.
+- `config/supervisor-tower.yaml` — hierarchy, worker routes, finish gates, and supervisor limits.
 - `config/litellm.yaml` — measured fast/code/strong aliases.
 - `config/freellmapi.config.json` — local provider definition for FreeLLMAPI.
 - `systemd/` — persistent CUDA server, prewarm timer, and legacy-port proxy.

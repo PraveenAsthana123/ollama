@@ -33,8 +33,11 @@ case "$action" in
   harness)
     exec python3 "$(dirname "$0")/harness_manager.py" "${@:2}"
     ;;
+  supervisor)
+    exec python3 "$(dirname "$0")/supervisor.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor}" >&2
     exit 2
     ;;
 esac

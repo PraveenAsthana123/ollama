@@ -172,3 +172,5 @@ Fleet telemetry, alert thresholds, and optional observability exporters are
 defined in [the Agent Monitoring Tower](AGENT_MONITORING.md).
 Runtime permissions, isolation, checkpoints, verification, and evidence gates
 are defined in [the Agent Harness Manager](AGENT_HARNESS.md).
+Hierarchical delegation, dependency scheduling, shared results, retries, and
+review completion are defined in [the Supervisor Tower](SUPERVISOR_TOWER.md).

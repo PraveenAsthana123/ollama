@@ -1,0 +1,42 @@
+version: 1
+routing_order: [exact_cache, semantic_cache, context_optimization, task_router, agent_router, model_router, provider_router, evaluator]
+
+local:
+  direct_ollama:
+    enabled: true
+    endpoint: http://127.0.0.1:11434
+  nvidia_pair:
+    enabled: false
+    endpoint: http://127.0.0.1:11434
+    reason: Current GTX 1080 Ti host is outside the validated RTX-era target; enable after compatible-node deployment.
+    request_scope: independent_requests
+
+free_cloud:
+  enabled: false
+  adapter: freellmapi
+  endpoint: http://127.0.0.1:8000/v1
+  require_declared_quota: true
+  credentials_from_environment_only: true
+
+paid_cloud:
+  enabled: false
+  endpoint: http://127.0.0.1:4400/v1
+  require_explicit_policy: true
+
+models:
+  fast: {local: qwen3:1.7b, maximum_complexity: easy}
+  code: {local: qwen2.5-coder:1.5b, maximum_complexity: normal}
+  strong: {local: qwen2.5:latest, maximum_complexity: hard}
+
+fallback_order: [pair, direct_ollama, free_cloud, paid_cloud]
+quality:
+  minimum_score: 0.80
+  maximum_escalations: 1
+  cache_only_accepted_results: true
+  memory_only_verified_results: true
+
+safety:
+  no_provider_capacity_claims: true
+  no_credential_storage: true
+  no_automatic_paid_fallback: true
+  pair_is_not_single_request_gpu_pooling: true

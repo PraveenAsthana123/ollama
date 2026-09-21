@@ -48,8 +48,11 @@ case "$action" in
   memory)
     exec python3 "$(dirname "$0")/collective_memory.py" "${@:2}"
     ;;
+  inference)
+    exec python3 "$(dirname "$0")/inference_router.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory}" >&2
+    echo "usage: control-tower {status|models|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference}" >&2
     exit 2
     ;;
 esac

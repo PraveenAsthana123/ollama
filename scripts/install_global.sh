@@ -11,10 +11,10 @@ if [[ ! -x "$canonical_python" ]]; then
   exit 1
 fi
 
-install -d -m 755 "$share_root/config" "$share_root/docs" "$share_root/scripts" "$bin_root"
+install -d -m 755 "$share_root/config" "$share_root/docs" "$share_root/scripts" "$share_root/portal" "$share_root/systemd" "$bin_root"
 # Publish only committed artifacts. Other projects may be editing this shared
 # checkout, and their unstaged code must never leak into the global install.
-git -C "$repo_root" archive HEAD config docs scripts README.md requirements.txt | tar -x -C "$share_root"
+git -C "$repo_root" archive HEAD config docs scripts portal systemd README.md CLAUDE.md requirements.txt | tar -x -C "$share_root"
 
 cat > "$bin_root/control-tower" <<EOF
 #!/usr/bin/env bash

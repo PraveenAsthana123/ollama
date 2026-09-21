@@ -66,8 +66,11 @@ case "$action" in
   run)
     exec python3 "$(dirname "$0")/execution_gateway.py" "${@:2}"
     ;;
+  delegate)
+    exec python3 "$(dirname "$0")/delegate.py" "${@:2}"
+    ;;
   *)
-    echo "usage: control-tower {status|models|residency|bench|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference|routers|fleet|run}" >&2
+    echo "usage: control-tower {status|models|residency|bench|warm|audit|agent|registry|monitor|harness|supervisor|tokens|platform|agentops|memory|inference|routers|fleet|run|delegate}" >&2
     exit 2
     ;;
 esac

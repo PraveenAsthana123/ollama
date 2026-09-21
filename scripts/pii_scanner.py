@@ -30,7 +30,19 @@ import re
 
 _EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 _SSN = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
-_PHONE = re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b")
+# Requires at least one real separator (space/dot/hyphen/parens) somewhere
+# in the match -- a bare, undelimited 10-digit run (a math result, an
+# order ID, a tracking number) is NOT a phone number by convention, and an
+# earlier version of this regex with every separator optional flagged
+# exactly that: a real Luhn-unrelated 10-digit multiplication answer
+# false-positived as "phone" purely because \d{10} alone satisfied every
+# optional group. Real phone numbers are visually delimited or announced
+# as phone numbers in context; requiring a separator is a deliberate
+# precision/recall tradeoff, same family of fix as the credit-card Luhn
+# check.
+_PHONE = re.compile(
+    r"\b(?:\+?1[-.\s])?\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}\b"
+)
 # Candidate 13-19 digit sequences, optionally separated by spaces/hyphens --
 # validated against Luhn below, not trusted on shape alone.
 _CARD_CANDIDATE = re.compile(r"\b(?:\d[ -]?){13,19}\b")

@@ -32,5 +32,21 @@ def test_does_not_flag_legitimate_text():
     assert result["types"] == []
 
 
+def test_does_not_flag_a_bare_undelimited_ten_digit_number_as_phone():
+    # Real bug found and fixed 2026-09-21: the first phone regex had every
+    # separator optional, so a plain 10-digit multiplication answer
+    # (84213 * 61970 = 5218679610) false-positived as a phone number.
+    result = pii_scanner.scan("What is 84213 times 61970?\n5218679610")
+    assert "phone" not in result["types"]
+
+
+def test_flags_phone_with_parens_and_space():
+    assert "phone" in pii_scanner.scan("Contact: (555) 123-4567")["types"]
+
+
+def test_flags_phone_with_dots():
+    assert "phone" in pii_scanner.scan("Phone: 555.123.4567")["types"]
+
+
 def test_flagged_is_false_when_types_empty():
     assert pii_scanner.scan("nothing sensitive here")["flagged"] is False

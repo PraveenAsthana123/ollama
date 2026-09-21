@@ -80,6 +80,9 @@ jobs:
           print(f"OK: {len(list(Path('config').glob('*.yaml')))} config files parse cleanly")
           PY
 
+      - name: Check config integrity (no silent drift from the committed baseline)
+        run: python3 scripts/config_integrity.py check
+
       - name: Run test suite
         run: python3 -m pytest tests/ -v
 

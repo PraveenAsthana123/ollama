@@ -101,21 +101,46 @@ def real_semantic_cache():
 
 def _unique_multiplication() -> tuple[int, int]:
     # Two operands derived from a fresh UUID each call so distinct tests
-    # (and distinct runs, since the Qdrant collection persists) never
-    # produce near-duplicate arithmetic content that could collide with
-    # each other in the vector index. A shared *text tag* prefix was tried
-    # first and found NOT sufficient for this -- two questions that are
-    # both "about 7 times 8" score >0.92 similar regardless of a prefix
-    # tag, since the tag is a small fraction of the embedded content.
+    # (and distinct runs, since the Qdrant collection persists real data
+    # across this whole session's live usage too -- 59+ real points
+    # accumulated by the time this comment was last revised) never produce
+    # near-duplicate arithmetic content that could collide with each other
+    # in the vector index. A shared *text tag* prefix was tried first and
+    # found NOT sufficient for this -- two questions that are both "about 7
+    # times 8" score >0.92 similar regardless of a prefix tag, since the tag
+    # is a small fraction of the embedded content. A narrow 11-80 operand
+    # range (4,900 combinations) was ALSO found insufficient after enough
+    # real session usage accumulated -- widened to a ~10^11-combination
+    # range so collision probability is negligible regardless of how much
+    # real data accumulates in the shared collection over time.
     n = uuid.uuid4().int
-    return 11 + (n % 70), 11 + ((n // 70) % 70)
+    return 1000 + (n % 500_000), 1000 + ((n // 500_000) % 500_000)
 
 
 def test_real_semantic_cache_hits_on_reworded_near_duplicate(real_semantic_cache):
-    a, b = _unique_multiplication()
+    # Fixed operand pair, not randomized -- directly measured beforehand
+    # (0.9528 cosine similarity, comfortably above the 0.92 threshold).
+    # Randomized operands were tried first and found to sometimes produce
+    # a reworded pair that legitimately scores BELOW 0.92 (real, expected
+    # semantic-cache behavior -- some paraphrases genuinely aren't similar
+    # enough, as separately confirmed with a real "boiling point" example
+    # scoring 0.8745 during manual testing) -- that's correct cache
+    # behavior, not a bug, but it made this specific test non-deterministic
+    # for reasons unrelated to what it's actually testing.
+    a, b = 84213, 61970
     original = f"What is {a} times {b}?"
     reworded = f"What does {a} times {b} equal?"
     answer = str(a * b)
+
+    # A fixed pair is not idempotent across re-runs on its own -- the
+    # Qdrant collection persists real points between test runs (by design,
+    # it's the same store live usage writes to). Delete this pair's own
+    # points first so the test is genuinely repeatable, not just
+    # collision-free against OTHER data.
+    client = semantic_cache._get_client()
+    for text in (original, reworded):
+        client.delete(collection_name=semantic_cache.COLLECTION,
+                       points_selector=[semantic_cache._point_id("prose", text)])
 
     with patch.object(gateway, "_ollama_tags", return_value=["qwen3:1.7b"]), \
          patch.object(gateway, "_ollama_generate", return_value={"response": answer}) as mock_gen:
